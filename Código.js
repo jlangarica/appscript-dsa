@@ -16,7 +16,7 @@ const CONFIG = {
   
   // Configuración de Gemini (Google AI Studio - Zero Cost)
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
-  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.0-flash-exp" // Modelo actualizado
+  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite"
 };
 
 /**
