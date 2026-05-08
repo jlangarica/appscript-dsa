@@ -1,0 +1,1000 @@
+<script>
+/**
+ * ============================================================================
+ * Scripts.html — Controlador principal DSA v2.0
+ * Compatible con Google Apps Script (GAS V8)
+ * ============================================================================
+ */
+
+'use strict';
+
+// ===================================================================
+// 1. CAPA DE ESTADO (Reactive Proxy)
+// ===================================================================
+const AppState = new Proxy({
+  vistaActual: 'v-dashboard',
+  pasoActual: 1,
+  pdfFile: null,
+  pdfBase64: null,
+  extractedData: null,
+  isProcessing: false,
+  isDark: false,
+  sidebarOpen: false,
+  paginaActual: 1,
+  totalPaginas: 1,
+  totalRegistros: 0,
+  filtroTexto: '',
+  filtroEstatus: 'Todos',
+  estadisticas: { total: 0, pendientes: 0, urgentes: 0, tiempoPromedio: '0 min', registradosHoy: 0 }
+}, {
+  set(target, prop, value) {
+    const old = target[prop];
+    target[prop] = value;
+    if (old !== value) _onStateChange(prop, value);
+    return true;
+  }
+});
+
+/**
+ * Reacciona a cambios de estado.
+ * @private
+ */
+function _onStateChange(prop, value) {
+  if (prop === 'isDark') {
+    document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.className = value ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    try { localStorage.setItem('dsa-theme', value ? 'dark' : 'light'); } catch(e) {}
+  }
+  if (prop === 'sidebarOpen') {
+    document.body.classList.toggle('sidebar-open', value);
+  }
+  if (prop === 'isProcessing') {
+    // Disable action buttons while processing
+    document.querySelectorAll('.btn-wizard-success, .btn-wizard-primary').forEach(btn => {
+      btn.disabled = value;
+    });
+  }
+}
+
+// ===================================================================
+// 2. INICIALIZACIÓN
+// ===================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  _initTheme();
+  _initClock();
+  _initDragAndDrop();
+  _initEventListeners();
+  _initKeyboardShortcuts();
+  cambiarVista('v-dashboard');
+  _loadDashboardData();
+});
+
+/**
+ * Inicializa el tema desde localStorage.
+ * @private
+ */
+function _initTheme() {
+  try {
+    const saved = localStorage.getItem('dsa-theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      AppState.isDark = true;
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  } catch(e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+}
+
+/**
+ * Reloj en tiempo real.
+ * @private
+ */
+function _initClock() {
+  const update = () => {
+    const el = document.getElementById('clock-time');
+    if (el) {
+      const now = new Date();
+      el.innerHTML = '<i class="bi bi-clock me-1"></i>' + now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+  };
+  update();
+  setInterval(update, 1000);
+}
+
+/**
+ * Configura event listeners adicionales.
+ * @private
+ */
+function _initEventListeners() {
+  // Búsqueda con debounce
+  const filtro = document.getElementById('filtro-texto');
+  if (filtro) {
+    filtro.addEventListener('input', _debounce(() => {
+      AppState.filtroTexto = filtro.value;
+      cargarRegistros(1);
+    }, 350));
+  }
+}
+
+/**
+ * Atajos de teclado.
+ * @private
+ */
+function _initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === '1') { e.preventDefault(); cambiarVista('v-dashboard'); }
+      if (e.key === '2') { e.preventDefault(); cambiarVista('v-registro'); }
+      if (e.key === '3') { e.preventDefault(); cambiarVista('v-archivo'); }
+      if (e.key === 'd' || e.key === 'D') { e.preventDefault(); toggleTheme(); }
+    }
+    if (e.key === 'Escape') {
+      hideModal('modal-confirmar');
+      hideModal('modal-exito');
+      if (AppState.sidebarOpen) toggleSidebar();
+    }
+  });
+}
+
+// ===================================================================
+// 3. ENRUTADOR DE VISTAS
+// ===================================================================
+
+/**
+ * Cambia la vista activa (SPA).
+ * @param {string} idVista - ID de la vista (v-dashboard, v-registro, v-archivo)
+ */
+function cambiarVista(idVista) {
+  const target = document.getElementById(idVista);
+  if (!target) return;
+
+  // Ocultar todas las vistas
+  document.querySelectorAll('.vista').forEach(v => v.classList.add('d-none'));
+
+  // Mostrar la vista seleccionada con animación
+  target.classList.remove('d-none');
+  target.style.animation = 'none';
+  target.offsetHeight; // Force reflow
+  target.style.animation = '';
+
+  AppState.vistaActual = idVista;
+
+  // Actualizar sidebar active state
+  document.querySelectorAll('.sidebar-nav-link[data-vista]').forEach(link => {
+    link.classList.toggle('active', link.getAttribute('data-vista') === idVista);
+  });
+
+  // Actualizar título del header
+  const titles = {
+    'v-dashboard': 'Dashboard',
+    'v-registro': 'Nuevo Registro',
+    'v-archivo': 'Biblioteca'
+  };
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = titles[idVista] || 'DSA';
+
+  // Cerrar sidebar en mobile
+  if (AppState.sidebarOpen) toggleSidebar();
+
+  // Cargar datos según la vista
+  if (idVista === 'v-dashboard') _loadDashboardData();
+  if (idVista === 'v-archivo') cargarRegistros(AppState.paginaActual);
+}
+
+// ===================================================================
+// 4. NAVEGACIÓN DEL WIZARD
+// ===================================================================
+
+/**
+ * Cambia el paso del wizard de registro.
+ * @param {number} n - Número de paso (1, 2, 3)
+ */
+function cambiarPaso(n) {
+  n = Math.max(1, Math.min(3, n));
+
+  // Ocultar todos los pasos
+  document.querySelectorAll('.paso').forEach(p => p.classList.add('d-none'));
+
+  // Mostrar el paso seleccionado
+  const target = document.getElementById(`paso-${n}`);
+  if (target) {
+    target.classList.remove('d-none');
+    target.style.animation = 'none';
+    target.offsetHeight;
+    target.style.animation = '';
+  }
+
+  AppState.pasoActual = n;
+
+  // Actualizar stepper visual
+  _updateStepper(n);
+
+  // Si es paso 3, poblar resumen
+  if (n === 3) poblarResumen();
+}
+
+/**
+ * Actualiza el stepper visual.
+ * @param {number} currentStep
+ * @private
+ */
+function _updateStepper(currentStep) {
+  const steps = document.querySelectorAll('.stepper-step');
+  const bar = document.getElementById('stepper-bar');
+
+  steps.forEach((step, i) => {
+    const stepNum = i + 1;
+    step.classList.remove('active', 'completed');
+    if (stepNum === currentStep) step.classList.add('active');
+    if (stepNum < currentStep) step.classList.add('completed');
+  });
+
+  // Actualizar barra de progreso
+  if (bar) {
+    const pct = ((currentStep - 1) / 2) * 100;
+    bar.style.width = pct + '%';
+  }
+}
+
+/**
+ * Puebla el resumen del paso 3 con los datos del formulario.
+ */
+function poblarResumen() {
+  const fields = {
+    'res-remitente': 'campo-remitente',
+    'res-oficio': 'campo-oficio',
+    'res-asunto': 'campo-asunto',
+    'res-urgencia': 'campo-urgencia',
+    'res-tipoDocumento': 'campo-tipoDocumento',
+    'res-destinatario': 'campo-destinatario',
+    'res-fechaDocumento': 'campo-fechaDocumento'
+  };
+
+  Object.entries(fields).forEach(([resId, campoId]) => {
+    const el = document.getElementById(resId);
+    const campo = document.getElementById(campoId);
+    if (el && campo) {
+      let val = campo.value || '—';
+      if (campoId === 'campo-urgencia') {
+        val = val === 'Alta' ? '🔴 Alta / Prioritario' : '🟢 Normal';
+      }
+      if (campoId === 'campo-fechaDocumento' && val && val !== '—') {
+        try { val = new Date(val + 'T12:00:00').toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' }); } catch(e) {}
+      }
+      el.textContent = val;
+    }
+  });
+}
+
+// ===================================================================
+// 5. DRAG & DROP
+// ===================================================================
+
+/**
+ * Inicializa la zona de arrastre de archivos.
+ */
+function initDragAndDrop() {
+  const dropzone = document.getElementById('dropzone');
+  const input = document.getElementById('pdf-input');
+  if (!dropzone || !input) return;
+
+  dropzone.addEventListener('click', (e) => {
+    if (e.target.closest('.btn-icon')) return; // No abrir diálogo si es botón eliminar
+    input.click();
+  });
+
+  input.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) handleFile(e.target.files[0]);
+  });
+
+  ['dragenter', 'dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dropzone-active');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dropzone-active');
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      handleFile(file);
+    } else {
+      showToast('Formato no válido', 'Solo se aceptan archivos PDF.', 'warning');
+    }
+  });
+}
+// Alias for init
+function _initDragAndDrop() { initDragAndDrop(); }
+
+/**
+ * Maneja la selección de un archivo PDF.
+ * @param {File} file
+ */
+function handleFile(file) {
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    showToast('Archivo demasiado grande', `El PDF supera los 10 MB (${_formatFileSize(file.size)}). Optimízalo antes de subirlo.`, 'warning');
+    return;
+  }
+
+  AppState.pdfFile = file;
+
+  // Mostrar info del archivo
+  const fileInfo = document.getElementById('file-info');
+  const fileName = document.getElementById('file-name');
+  const fileSize = document.getElementById('file-size');
+  if (fileInfo) fileInfo.classList.remove('d-none');
+  if (fileName) fileName.textContent = file.name;
+  if (fileSize) fileSize.textContent = _formatFileSize(file.size);
+
+  // Vista previa del PDF
+  const objectUrl = URL.createObjectURL(file);
+  const viewer = document.getElementById('pdf-viewer');
+  if (viewer) viewer.src = objectUrl;
+
+  // Convertir a Base64
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    AppState.pdfBase64 = e.target.result.split(',')[1];
+    procesarDocumento();
+  };
+  reader.onerror = () => {
+    showToast('Error de lectura', 'No se pudo leer el archivo.', 'danger');
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Elimina el archivo seleccionado.
+ */
+function eliminarArchivo() {
+  AppState.pdfFile = null;
+  AppState.pdfBase64 = null;
+  AppState.extractedData = null;
+
+  const fileInfo = document.getElementById('file-info');
+  if (fileInfo) fileInfo.classList.add('d-none');
+
+  const viewer = document.getElementById('pdf-viewer');
+  if (viewer) viewer.src = 'about:blank';
+
+  const input = document.getElementById('pdf-input');
+  if (input) input.value = '';
+}
+
+// ===================================================================
+// 6. PROCESAMIENTO DE DOCUMENTO (OCR + IA)
+// ===================================================================
+
+/**
+ * Envía el PDF al backend para procesamiento OCR + IA.
+ */
+function procesarDocumento() {
+  if (!AppState.pdfBase64 || !AppState.pdfFile) return;
+
+  AppState.isProcessing = true;
+  _toggleLoading(true, 'Analizando documento con IA...');
+
+  // Rotar mensajes de carga
+  const messages = [
+    'Analizando documento con IA...',
+    'Extrayendo texto con OCR forense...',
+    'Clasificando con Gemini Flash...',
+    'Estructurando metadatos...'
+  ];
+  let msgIdx = 0;
+  const msgInterval = setInterval(() => {
+    msgIdx = (msgIdx + 1) % messages.length;
+    const loaderMsg = document.getElementById('loader-message');
+    if (loaderMsg) loaderMsg.textContent = messages[msgIdx];
+  }, 4000);
+
+  // Timeout de seguridad
+  const timeoutId = setTimeout(() => {
+    if (AppState.isProcessing) {
+      AppState.isProcessing = false;
+      clearInterval(msgInterval);
+      _toggleLoading(false);
+      showToast('Timeout', 'La operación está tardando demasiado. Intenta con un archivo más ligero.', 'danger');
+    }
+  }, 90000);
+
+  google.script.run
+    .withSuccessHandler(response => {
+      clearTimeout(timeoutId);
+      clearInterval(msgInterval);
+      AppState.isProcessing = false;
+      _toggleLoading(false);
+
+      if (response && response.success && response.data) {
+        AppState.extractedData = response.data;
+        poblarFormulario(response.data);
+        cambiarPaso(2);
+        showToast('Datos extraídos', 'La IA completó el análisis del documento.', 'success');
+      } else {
+        const msg = (response && response.message) || 'Error desconocido al procesar el documento.';
+        showToast('Error de procesamiento', msg, 'danger');
+      }
+    })
+    .withFailureHandler(err => {
+      clearTimeout(timeoutId);
+      clearInterval(msgInterval);
+      AppState.isProcessing = false;
+      _toggleLoading(false);
+      showToast('Error de servidor', err.message || 'Error al comunicarse con el servidor.', 'danger');
+    })
+    .procesarDocumento(AppState.pdfBase64, AppState.pdfFile.name);
+}
+
+/**
+ * Puebla el formulario con los datos extraídos por la IA.
+ * @param {Object} data - Datos extraídos.
+ */
+function poblarFormulario(data) {
+  if (!data) return;
+
+  const mapping = {
+    'campo-remitente': data.remitente || '',
+    'campo-oficio': data.oficio || '',
+    'campo-asunto': data.asunto || '',
+    'campo-urgencia': data.urgencia || 'Normal',
+    'campo-tipoDocumento': data.tipoDocumento || 'Oficio',
+    'campo-destinatario': data.destinatario || '',
+    'campo-fechaDocumento': data.fechaDocumento || ''
+  };
+
+  Object.entries(mapping).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = value;
+      // Efecto de auto-completado
+      el.classList.add('auto-filled');
+      setTimeout(() => el.classList.remove('auto-filled'), 1500);
+    }
+  });
+}
+
+// ===================================================================
+// 7. REGISTRO FINAL
+// ===================================================================
+
+/**
+ * Inicia el flujo de registro: muestra modal de confirmación.
+ */
+function registrarOficioFinal() {
+  // Validar campos requeridos
+  const remitente = document.getElementById('campo-remitente');
+  const oficio = document.getElementById('campo-oficio');
+
+  if (!remitente || !remitente.value.trim()) {
+    showToast('Campo requerido', 'El campo Remitente es obligatorio.', 'warning');
+    if (remitente) remitente.focus();
+    return;
+  }
+  if (!oficio || !oficio.value.trim()) {
+    showToast('Campo requerido', 'El campo Número de Oficio es obligatorio.', 'warning');
+    if (oficio) oficio.focus();
+    return;
+  }
+
+  showModal('modal-confirmar');
+}
+
+/**
+ * Confirma el registro (llamado desde el modal).
+ */
+function confirmarRegistro() {
+  hideModal('modal-confirmar');
+
+  const data = {
+    remitente: document.getElementById('campo-remitente').value,
+    oficio: document.getElementById('campo-oficio').value,
+    asunto: document.getElementById('campo-asunto').value,
+    urgencia: document.getElementById('campo-urgencia').value,
+    tipoDocumento: document.getElementById('campo-tipoDocumento').value,
+    destinatario: document.getElementById('campo-destinatario').value,
+    fechaDocumento: document.getElementById('campo-fechaDocumento').value,
+    fileName: AppState.pdfFile ? AppState.pdfFile.name : 'documento.pdf'
+  };
+
+  _toggleLoading(true, 'Registrando en Libro de Gobierno...');
+
+  const timeoutId = setTimeout(() => {
+    _toggleLoading(false);
+    showToast('Timeout', 'El registro está tardando. Verifica tu conexión.', 'warning');
+  }, 60000);
+
+  google.script.run
+    .withSuccessHandler(res => {
+      clearTimeout(timeoutId);
+      _toggleLoading(false);
+
+      if (res && res.success) {
+        // Mostrar folio en modal de éxito
+        const folioEl = document.getElementById('folio-display');
+        if (folioEl) folioEl.textContent = res.folio || 'FOL-??????';
+
+        showModal('modal-exito');
+        resetForm();
+      } else {
+        showToast('Error', (res && res.message) || 'Error al registrar el oficio.', 'danger');
+      }
+    })
+    .withFailureHandler(err => {
+      clearTimeout(timeoutId);
+      _toggleLoading(false);
+      showToast('Error de servidor', err.message || 'Error al registrar.', 'danger');
+    })
+    .registrarOficioFinalizado(data, AppState.pdfBase64, AppState.pdfFile ? AppState.pdfFile.name : 'documento.pdf');
+}
+
+// ===================================================================
+// 8. DASHBOARD DATA
+// ===================================================================
+
+/**
+ * Carga todos los datos del Dashboard.
+ * @private
+ */
+function _loadDashboardData() {
+  _loadEstadisticas();
+  _loadActividadReciente();
+}
+
+/**
+ * Carga estadísticas desde el backend.
+ * @private
+ */
+function _loadEstadisticas() {
+  google.script.run
+    .withSuccessHandler(response => {
+      if (response && response.success && response.data) {
+        const d = response.data;
+        AppState.estadisticas = d;
+
+        _animateCounter('stat-total', d.total || 0);
+        _animateCounter('stat-pendientes', d.pendientes || 0);
+        _animateCounter('stat-urgentes', d.urgentes || 0);
+        _animateCounter('stat-hoy', d.registradosHoy || 0);
+
+        const tiempoEl = document.getElementById('stat-tiempo');
+        if (tiempoEl) tiempoEl.textContent = d.tiempoPromedio || '0 min';
+      }
+    })
+    .withFailureHandler(err => {
+      console.warn('Error cargando estadísticas:', err);
+    })
+    .obtenerEstadisticas();
+}
+
+/**
+ * Carga la actividad reciente para la tabla del Dashboard.
+ * @private
+ */
+function _loadActividadReciente() {
+  google.script.run
+    .withSuccessHandler(response => {
+      if (response && response.success && response.data) {
+        _renderActividadTabla(response.data);
+      }
+    })
+    .withFailureHandler(err => {
+      console.warn('Error cargando actividad:', err);
+    })
+    .obtenerActividadReciente(8);
+}
+
+/**
+ * Renderiza la tabla de actividad reciente.
+ * @param {Array} registros
+ * @private
+ */
+function _renderActividadTabla(registros) {
+  const tbody = document.getElementById('tabla-actividad-body');
+  if (!tbody) return;
+
+  if (!registros || registros.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-cell"><div class="empty-state"><i class="bi bi-inbox"></i><h4>Sin actividad reciente</h4><p>Los registros aparecerán aquí una vez que se procesen oficios.</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = registros.map(r => `
+    <tr>
+      <td><strong>${_escaparHTML(r.folio)}</strong></td>
+      <td>${_escaparHTML(r.remitente)}</td>
+      <td>${_truncarTexto(_escaparHTML(r.asunto), 40)}</td>
+      <td><span class="badge-urgencia ${r.urgencia === 'Alta' ? 'urgencia-alta' : 'urgencia-normal'}">${r.urgencia === 'Alta' ? '🔴 Alta' : '🟢 Normal'}</span></td>
+      <td><span class="badge-status ${_badgeEstatusClass(r.estatus)}">${_escaparHTML(r.estatus)}</span></td>
+      <td>${_escaparHTML(r.timestamp)}</td>
+    </tr>
+  `).join('');
+}
+
+// ===================================================================
+// 9. BIBLIOTECA
+// ===================================================================
+
+/**
+ * Carga registros paginados para la Biblioteca.
+ * @param {number} pagina
+ */
+function cargarRegistros(pagina) {
+  pagina = Math.max(1, pagina);
+  AppState.paginaActual = pagina;
+
+  const filtro = AppState.filtroTexto;
+  const estatus = AppState.filtroEstatus || 'Todos';
+
+  const filtroEl = document.getElementById('filtro-texto');
+  const estatusEl = document.getElementById('filtro-estatus');
+  if (filtroEl) AppState.filtroTexto = filtroEl.value;
+  if (estatusEl) AppState.filtroEstatus = estatusEl.value;
+
+  google.script.run
+    .withSuccessHandler(response => {
+      if (response && response.success && response.data) {
+        const d = response.data;
+        AppState.totalPaginas = d.totalPaginas || 1;
+        AppState.totalRegistros = d.totalRegistros || 0;
+
+        _renderArchivoTabla(d.registros || []);
+        _updatePagination(d.paginaActual, d.totalPaginas, d.totalRegistros);
+      }
+    })
+    .withFailureHandler(err => {
+      console.warn('Error cargando registros:', err);
+    })
+    .obtenerRegistros(pagina, 10, AppState.filtroTexto, AppState.filtroEstatus);
+}
+
+/**
+ * Renderiza la tabla de la Biblioteca.
+ * @param {Array} registros
+ * @private
+ */
+function _renderArchivoTabla(registros) {
+  const tbody = document.getElementById('tabla-archivo-body');
+  if (!tbody) return;
+
+  if (!registros || registros.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state-cell"><div class="empty-state"><i class="bi bi-inbox"></i><h4>Sin expedientes</h4><p>No se encontraron registros con los filtros actuales.</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = registros.map(r => `
+    <tr>
+      <td><strong>${_escaparHTML(r.folio)}</strong></td>
+      <td>${_escaparHTML(r.remitente)}</td>
+      <td>${_truncarTexto(_escaparHTML(r.asunto), 45)}</td>
+      <td><span class="badge-urgencia ${r.urgencia === 'Alta' ? 'urgencia-alta' : 'urgencia-normal'}">${r.urgencia === 'Alta' ? '🔴 Alta' : '🟢 Normal'}</span></td>
+      <td><span class="badge-status ${_badgeEstatusClass(r.estatus)}">${_escaparHTML(r.estatus)}</span></td>
+      <td>${_escaparHTML(r.timestamp)}</td>
+      <td>
+        ${r.fileUrl ? '<a href="' + r.fileUrl + '" target="_blank" class="btn-action-sm" title="Ver documento"><i class="bi bi-box-arrow-up-right"></i></a>' : '<span class="text-muted">—</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+/**
+ * Actualiza los controles de paginación.
+ * @private
+ */
+function _updatePagination(current, total, totalRecords) {
+  const info = document.getElementById('pagination-info');
+  const btnPrev = document.getElementById('btn-prev-page');
+  const btnNext = document.getElementById('btn-next-page');
+  const totalEl = document.getElementById('total-registros');
+  const filteredEl = document.getElementById('filtered-count');
+
+  if (info) info.textContent = `Página ${current} de ${total}`;
+  if (btnPrev) btnPrev.disabled = current <= 1;
+  if (btnNext) btnNext.disabled = current >= total;
+  if (totalEl) totalEl.textContent = totalRecords;
+  if (filteredEl) filteredEl.textContent = totalRecords;
+}
+
+/**
+ * Navega entre páginas de la Biblioteca.
+ * @param {number} delta - +1 o -1
+ */
+function cambiarPagina(delta) {
+  const nueva = AppState.paginaActual + delta;
+  if (nueva >= 1 && nueva <= AppState.totalPaginas) {
+    cargarRegistros(nueva);
+  }
+}
+
+/**
+ * Limpia los filtros de búsqueda.
+ */
+function limpiarFiltros() {
+  const filtro = document.getElementById('filtro-texto');
+  const estatus = document.getElementById('filtro-estatus');
+  if (filtro) filtro.value = '';
+  if (estatus) estatus.value = 'Todos';
+  AppState.filtroTexto = '';
+  AppState.filtroEstatus = 'Todos';
+  cargarRegistros(1);
+}
+
+// ===================================================================
+// 10. TEMA
+// ===================================================================
+
+/**
+ * Alterna entre modo claro y oscuro.
+ */
+function toggleTheme() {
+  AppState.isDark = !AppState.isDark;
+}
+
+// ===================================================================
+// 11. SIDEBAR (Mobile)
+// ===================================================================
+
+/**
+ * Alterna la visibilidad del sidebar en móvil.
+ */
+function toggleSidebar() {
+  AppState.sidebarOpen = !AppState.sidebarOpen;
+}
+
+// ===================================================================
+// 12. UI HELPERS
+// ===================================================================
+
+/**
+ * Muestra/oculta el loader global.
+ * @param {boolean} show
+ * @param {string} [message]
+ * @private
+ */
+function _toggleLoading(show, message) {
+  const loader = document.getElementById('global-loader');
+  if (!loader) return;
+
+  if (show) {
+    loader.classList.add('show');
+    const msgEl = document.getElementById('loader-message');
+    if (msgEl && message) msgEl.textContent = message;
+  } else {
+    loader.classList.remove('show');
+  }
+}
+
+/**
+ * Muestra una notificación toast.
+ * @param {string} title - Título.
+ * @param {string} message - Mensaje.
+ * @param {'success'|'danger'|'warning'|'info'} [type='info'] - Tipo.
+ */
+function showToast(title, message, type) {
+  type = type || 'info';
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const icons = {
+    success: 'bi-check-circle-fill',
+    danger: 'bi-exclamation-triangle-fill',
+    warning: 'bi-exclamation-circle-fill',
+    info: 'bi-info-circle-fill'
+  };
+
+  const id = 'toast-' + Date.now();
+
+  const toastEl = document.createElement('div');
+  toastEl.id = id;
+  toastEl.className = `toast-item toast-${type}`;
+  toastEl.innerHTML = `
+    <div class="toast-icon"><i class="bi ${icons[type] || icons.info}"></i></div>
+    <div class="toast-content">
+      <div class="toast-title">${_escaparHTML(title)}</div>
+      <div class="toast-message">${_escaparHTML(message)}</div>
+    </div>
+    <button class="toast-close" onclick="removeToast('${id}')"><i class="bi bi-x"></i></button>
+    <div class="toast-progress"></div>
+  `;
+
+  container.appendChild(toastEl);
+
+  // Auto-dismiss
+  setTimeout(() => removeToast(id), 5000);
+}
+
+/**
+ * Elimina un toast con animación.
+ * @param {string} id
+ */
+function removeToast(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('toast-exit');
+  setTimeout(() => el.remove(), 300);
+}
+
+/**
+ * Muestra un modal.
+ * @param {string} id - ID del modal.
+ */
+function showModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.add('show');
+}
+
+/**
+ * Oculta un modal.
+ * @param {string} id - ID del modal.
+ */
+function hideModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('show');
+}
+
+/**
+ * Resetea el formulario de registro.
+ */
+function resetForm() {
+  AppState.pasoActual = 1;
+  AppState.pdfFile = null;
+  AppState.pdfBase64 = null;
+  AppState.extractedData = null;
+
+  const form = document.getElementById('form-datos');
+  if (form) form.reset();
+
+  const fileInfo = document.getElementById('file-info');
+  if (fileInfo) fileInfo.classList.add('d-none');
+
+  const viewer = document.getElementById('pdf-viewer');
+  if (viewer) viewer.src = 'about:blank';
+
+  const input = document.getElementById('pdf-input');
+  if (input) input.value = '';
+
+  cambiarPaso(1);
+}
+
+/**
+ * Cierra la sesión (placeholder).
+ */
+function cerrarSesion() {
+  showToast('Sesión', 'Función de cierre de sesión no implementada en este entorno.', 'info');
+}
+
+/**
+ * Anima un contador de 0 al valor objetivo.
+ * @param {string} elementId - ID del elemento.
+ * @param {number} target - Valor objetivo.
+ * @param {number} [duration=800] - Duración en ms.
+ * @private
+ */
+function _animateCounter(elementId, target, duration) {
+  duration = duration || 800;
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  if (target === 0) { el.textContent = '0'; return; }
+
+  const start = 0;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(start + (target - start) * eased);
+    el.textContent = current.toLocaleString('es-MX');
+    if (progress < 1) requestAnimationFrame(update);
+  }
+
+  requestAnimationFrame(update);
+}
+
+// ===================================================================
+// 13. UTILIDADES
+// ===================================================================
+
+/**
+ * Debounce genérico.
+ * @param {Function} fn
+ * @param {number} delay
+ * @return {Function}
+ * @private
+ */
+function _debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+/**
+ * Formatea bytes a KB/MB.
+ * @param {number} bytes
+ * @return {string}
+ * @private
+ */
+function _formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+/**
+ * Escapa HTML para prevenir XSS.
+ * @param {string} str
+ * @return {string}
+ * @private
+ */
+function _escaparHTML(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+/**
+ * Trunca texto con elipsis.
+ * @param {string} str
+ * @param {number} maxLen
+ * @return {string}
+ * @private
+ */
+function _truncarTexto(str, maxLen) {
+  if (!str || str.length <= maxLen) return str || '';
+  return str.substring(0, maxLen) + '…';
+}
+
+/**
+ * Devuelve la clase CSS para el badge de estatus.
+ * @param {string} estatus
+ * @return {string}
+ * @private
+ */
+function _badgeEstatusClass(estatus) {
+  const map = {
+    'Recibido': 'badge-recibido',
+    'Pendiente': 'badge-pendiente',
+    'En Proceso': 'badge-proceso',
+    'Completado': 'badge-completado',
+    'Cancelado': 'badge-cancelado',
+    'Urgente': 'badge-urgente'
+  };
+  return map[estatus] || 'badge-pendiente';
+}
+
+// ===================================================================
+// 14. EXPOSICIÓN GLOBAL (requerido por GAS onclick handlers)
+// ===================================================================
+window.cambiarVista = cambiarVista;
+window.cambiarPaso = cambiarPaso;
+window.registrarOficioFinal = registrarOficioFinal;
+window.confirmarRegistro = confirmarRegistro;
+window.toggleSidebar = toggleSidebar;
+window.toggleTheme = toggleTheme;
+window.cargarRegistros = cargarRegistros;
+window.cambiarPagina = cambiarPagina;
+window.limpiarFiltros = limpiarFiltros;
+window.eliminarArchivo = eliminarArchivo;
+window.cerrarSesion = cerrarSesion;
+window.removeToast = removeToast;
+window.showModal = showModal;
+window.hideModal = hideModal;
+window.resetForm = resetForm;
+window.initDragAndDrop = initDragAndDrop;
+window.poblarResumen = poblarResumen;
+</script>
