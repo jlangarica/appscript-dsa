@@ -11,6 +11,7 @@
     pdfFile: null,
     pdfBase64: null,
     extractedData: null,
+    bibliotecaData: [],
     isProcessing: false,
     isDark: localStorage.getItem('dsa-theme') === 'dark'
   }, {
@@ -71,6 +72,12 @@
     
     // Aplicar tema inicial
     if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
+
+    // Escuchar búsqueda en biblioteca
+    const searchInput = document.getElementById('filtro-texto');
+    if (searchInput) {
+      searchInput.addEventListener('input', _debounce(() => aplicarFiltrosBiblioteca(), 300));
+    }
   });
 
   function initSearch() {
@@ -89,6 +96,7 @@
   // --- ENRUTADOR ---
   function cambiarVista(idVista) {
     AppState.vistaActual = idVista;
+    if (idVista === 'v-archivo') cargarBiblioteca();
   }
 
   // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
@@ -301,6 +309,105 @@
     document.getElementById('form-datos').reset();
     document.getElementById('pdf-viewer').src = 'about:blank';
     cambiarPaso(1);
+  }
+
+  // --- GESTOR DE BIBLIOTECA ---
+
+  function cargarBiblioteca() {
+    toggleLoading(true, "Cargando biblioteca...");
+    google.script.run
+      .withSuccessHandler(res => {
+        toggleLoading(false);
+        if (res.success) {
+          AppState.bibliotecaData = res.data;
+          _poblarFiltroAreas(res.data);
+          renderizarTablaBiblioteca(res.data);
+        } else {
+          showToast('Error', 'No se pudo cargar la biblioteca.', 'danger');
+        }
+      })
+      .withFailureHandler(err => {
+        toggleLoading(false);
+        showToast('Error de Servidor', err.message, 'danger');
+      })
+      .obtenerRegistros();
+  }
+
+  function _poblarFiltroAreas(data) {
+    const areas = [...new Set(data.map(r => r.area).filter(a => a))].sort();
+    const select = document.getElementById('filtro-area');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Todas las Áreas</option>';
+    areas.forEach(area => {
+      select.insertAdjacentHTML('beforeend', `<option value="${area}">${area}</option>`);
+    });
+  }
+
+  function aplicarFiltrosBiblioteca() {
+    const texto = document.getElementById('filtro-texto').value.toLowerCase();
+    const area = document.getElementById('filtro-area').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    const prioridad = document.getElementById('filtro-prioridad').value;
+    const respuesta = document.getElementById('filtro-respuesta').value;
+
+    const filtrados = AppState.bibliotecaData.filter(reg => {
+      const matchTexto = !texto || 
+        reg.titular.toLowerCase().includes(texto) || 
+        reg.asunto.toLowerCase().includes(texto) || 
+        reg.oficio.toLowerCase().includes(texto) ||
+        reg.area.toLowerCase().includes(texto);
+      
+      const matchArea = !area || reg.area === area;
+      const matchTipo = !tipo || reg.tipo_doc === tipo;
+      const matchPrioridad = !prioridad || reg.urgencia === prioridad;
+      const matchRespuesta = !respuesta || reg.respuesta === respuesta;
+
+      return matchTexto && matchArea && matchTipo && matchPrioridad && matchRespuesta;
+    });
+
+    renderizarTablaBiblioteca(filtrados);
+    
+    const empty = document.getElementById('empty-search');
+    if (empty) empty.classList.toggle('d-none', filtrados.length > 0);
+  }
+
+  function renderizarTablaBiblioteca(data) {
+    const tbody = document.getElementById('tabla-biblioteca-body');
+    if (!tbody) return;
+
+    if (data.length === 0) {
+      tbody.innerHTML = '';
+      return;
+    }
+
+    const html = data.map(reg => {
+      const colorPrioridad = {
+        'Baja': 'secondary',
+        'Normal': 'primary',
+        'Alta': 'warning',
+        'Crítica': 'danger'
+      }[reg.urgencia] || 'primary';
+
+      return `
+        <tr>
+          <td class="ps-4 small text-secondary">${new Date(reg.fecha).toLocaleDateString()}</td>
+          <td class="fw-medium">${_escaparHTML(reg.titular)}</td>
+          <td class="small text-secondary">${_escaparHTML(reg.area)}</td>
+          <td class="small font-monospace">${_escaparHTML(reg.oficio)}</td>
+          <td><span class="badge bg-light text-dark border small">${reg.tipo_doc}</span></td>
+          <td class="small text-truncate" style="max-width: 200px;">${_escaparHTML(reg.asunto)}</td>
+          <td><span class="badge bg-${colorPrioridad}-subtle text-${colorPrioridad} rounded-pill px-3">${reg.urgencia}</span></td>
+          <td class="pe-4 text-center">
+            <a href="${reg.url}" target="_blank" class="btn btn-sm btn-link p-0 text-primary">
+              <i class="bi bi-file-earmark-pdf" style="font-size: 1.2rem;"></i>
+            </a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.innerHTML = html;
   }
 
   // --- UTILIDADES ---

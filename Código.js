@@ -246,6 +246,46 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   }
 }
 
+/**
+ * Obtiene todos los registros del Libro de Gobierno para la Biblioteca.
+ * @return {Object} Lista de registros formateada.
+ */
+function obtenerRegistros() {
+  try {
+    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
+    
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+    const sheet = ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length <= 1) return { success: true, data: [] };
+    
+    const headers = data[0];
+    const rows = data.slice(1).reverse(); // Los más recientes primero
+    
+    const registros = rows.map((row, index) => {
+      return {
+        fecha: row[0],
+        titular: row[1],
+        area: row[2],
+        oficio: row[3],
+        asunto: row[4],
+        tipo_doc: row[5],
+        urgencia: row[6],
+        respuesta: row[7],
+        estatus: row[8],
+        url: row[9],
+        registrador: row[10]
+      };
+    });
+    
+    return { success: true, data: registros };
+  } catch (error) {
+    _log("ERROR", "obtenerRegistros", error.toString());
+    return { success: false, message: error.toString() };
+  }
+}
+
 // ===================================================================
 // 5. UTILIDADES Y SISTEMA DE ROBUSTEZ
 // ===================================================================

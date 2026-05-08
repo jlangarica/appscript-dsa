@@ -299,18 +299,82 @@
 
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
-      <h1 class="fw-bold mb-4">Biblioteca</h1>
-      <div class="mac-card p-2 mb-4">
-        <div class="input-group">
-          <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
-          <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-3" placeholder="Buscar expedientes...">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold">Biblioteca</h1>
+        <button class="apple-btn apple-btn-secondary" onclick="cargarBiblioteca()">
+          <i class="bi bi-arrow-clockwise me-2"></i> Actualizar
+        </button>
+      </div>
+
+      <!-- Filtros Avanzados -->
+      <div class="mac-card p-4 mb-4">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
+              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2" placeholder="Búsqueda inteligente / semántica...">
+            </div>
+          </div>
+          <div class="col-md-2">
+            <select id="filtro-area" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
+              <option value="">Todas las Áreas</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select id="filtro-tipo" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
+              <option value="">Todos los Tipos</option>
+              <option value="Informativo">Informativo</option>
+              <option value="Solicitud">Solicitud</option>
+              <option value="Requerimiento">Requerimiento</option>
+              <option value="Circular">Circular</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select id="filtro-prioridad" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
+              <option value="">Todas las Prioridades</option>
+              <option value="Baja">Baja</option>
+              <option value="Normal">Normal</option>
+              <option value="Alta">Alta</option>
+              <option value="Crítica">Crítica</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select id="filtro-respuesta" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
+              <option value="">Respuesta: Todas</option>
+              <option value="SÍ">Requiere Respuesta</option>
+              <option value="NO">No Requiere</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div class="text-center py-5" id="empty-search">
-        <i class="bi bi-search text-secondary opacity-25" style="font-size: 4rem;"></i>
-        <h4 class="mt-3 fw-semibold">Buscador Histórico</h4>
-        <p class="text-secondary">Escribe para buscar en la base de datos central.</p>
+      <!-- Tabla de Resultados -->
+      <div class="mac-card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
+              <tr class="text-secondary small">
+                <th class="ps-4">FECHA</th>
+                <th>TITULAR</th>
+                <th>ÁREA</th>
+                <th>OFICIO</th>
+                <th>TIPO</th>
+                <th>ASUNTO</th>
+                <th>PRIORIDAD</th>
+                <th class="pe-4 text-center">DOC</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-biblioteca-body">
+              <!-- Se puebla dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="empty-search" class="text-center py-5 d-none">
+          <i class="bi bi-search text-secondary opacity-25" style="font-size: 4rem;"></i>
+          <h4 class="mt-3 fw-semibold">Sin resultados</h4>
+          <p class="text-secondary">Prueba ajustando los filtros o el texto de búsqueda.</p>
+        </div>
       </div>
     </div>
 
