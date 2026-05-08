@@ -105,7 +105,7 @@ function procesarDocumento(base64Data, fileName) {
     };
   } catch (error) {
     _log("ERROR", "procesarDocumento", "Fallo definitivo tras reintentos", { error: error.toString() });
-    return { success: false, message: "Fallo en IA (Tras reintentos): " + error.toString() };
+    return { success: false, message: "Fallo en el procesamiento (Tras reintentos): " + error.toString() };
   }
 }
 

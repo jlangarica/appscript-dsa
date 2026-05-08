@@ -165,21 +165,31 @@
   function procesarDocumento() {
     AppState.isProcessing = true;
     
-    // Rotar mensajes de carga (UX Psicología)
+    // Rotar mensajes de carga (UX de Procesamiento Oficial)
     const messages = [
-      'Analizando documento con IA...',
-      'Extrayendo texto con OCR forense...',
-      'Clasificando con Gemini Flash...',
-      'Estructurando metadatos...'
+      'Analizando estructura del documento...',
+      'Extrayendo metadatos oficiales...',
+      'Validando integridad de la información...',
+      'Organizando datos para revisión...'
     ];
     let msgIdx = 0;
+    let progress = 0;
+    
     const msgInterval = setInterval(() => {
       msgIdx = (msgIdx + 1) % messages.length;
-      const loaderMsg = document.getElementById('loader-message');
-      if (loaderMsg) loaderMsg.textContent = messages[msgIdx];
-    }, 4000);
+      const subMessage = document.getElementById('loader-submessage');
+      if (subMessage) subMessage.textContent = messages[msgIdx];
+      
+      // Incrementar progreso simulado (más lento al final)
+      if (progress < 90) {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        const progressBar = document.getElementById('loader-progress');
+        if (progressBar) progressBar.style.width = progress + '%';
+      }
+    }, 3000);
 
-    toggleLoading(true, messages[0]);
+    toggleLoading(true, "Procesando...", messages[0]);
 
     // Temporizador de seguridad extendido (90 segundos)
     const timeoutId = setTimeout(() => {
@@ -199,7 +209,9 @@
           AppState.extractedData = response.data;
           poblarFormulario(response.data);
           cambiarPaso(2);
-          showToast('Éxito', 'Datos extraídos correctamente.', 'success');
+          const progressBar = document.getElementById('loader-progress');
+          if (progressBar) progressBar.style.width = '100%';
+          showToast('Éxito', 'Información procesada correctamente.', 'success');
         } else {
           showToast('Error', response.message, 'danger');
         }
@@ -298,11 +310,17 @@
     AppState.isDark = !AppState.isDark;
   }
 
-  function toggleLoading(show, message = "Procesando...") {
+  function toggleLoading(show, message = "Procesando...", submessage = "") {
     const loader = document.getElementById('global-loader');
     if (loader) {
       loader.classList.toggle('d-none', !show);
-      loader.querySelector('.loader-text').innerText = message;
+      const msgEl = loader.querySelector('.loader-text');
+      const subMsgEl = document.getElementById('loader-submessage');
+      const progressBar = document.getElementById('loader-progress');
+      
+      if (msgEl) msgEl.innerText = message;
+      if (subMsgEl) subMsgEl.innerText = submessage;
+      if (!show && progressBar) progressBar.style.width = '0%';
     }
   }
 
