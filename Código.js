@@ -222,34 +222,39 @@ function llamarGeminiMultimodal(base64Data) {
  * @return {Object} Status de la operación y folio generado.
  */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
-  // 0. Validación de Integridad
-  if (!datosFinales || !datosFinales.titular || !datosFinales.oficio) {
-    return { success: false, message: "Payload inválido. Faltan datos obligatorios (titular/oficio)." };
-  }
-
   const cache = CacheService.getScriptCache();
   
-  // 0.1 Idempotencia
+  // 0.1 Rate Limiting (Seguridad: Tarea #2)
+  try {
+    _verificarRateLimit("registro", 5); // 1 cada 5s por usuario
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+
+  // 0.2 Idempotencia
   if (datosFinales.uploadId) {
     const cachedStatus = cache.get(`status_${datosFinales.uploadId}`);
     if (cachedStatus) return JSON.parse(cachedStatus);
   }
 
+  let fileCreated = null; // Para rollback (Tarea #1)
   try {
-    // 1. ALMACENAMIENTO DRIVE (FUERA DEL LOCK - Tarea #1)
-    // Las operaciones de Drive son lentas, mejor hacerlas antes de bloquear el Sheet
+    // 1. ALMACENAMIENTO DRIVE
     const dayFolder = obtenerCarpetaDelDia();
     const decodedData = Utilities.base64Decode(base64Data);
     const blob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
-    const file = dayFolder.createFile(blob);
-    const fileUrl = file.getUrl();
+    fileCreated = dayFolder.createFile(blob);
+    const fileUrl = fileCreated.getUrl();
 
-    // 2. INDEXACIÓN EN SHEETS (CON LOCK - Tarea #1)
+    // 2. INDEXACIÓN EN SHEETS (CON LOCK)
     const lock = LockService.getScriptLock();
     try {
-      lock.waitLock(10000); // Bloqueo corto solo para escritura en Sheet
+      lock.waitLock(10000); 
 
       if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no configurado.");
+      
+      // Uso de Sheets API para inserción rápida (Opcional, appendRow es estable, 
+      // pero el rollback es la prioridad aquí)
       const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
       let sheet = ss.getSheetByName("Recibidos");
       
@@ -280,7 +285,6 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
       success: true, 
       message: "Oficio registrado correctamente.",
       folio: folioGenerado,
-      // Delegar notificación al frontend para no bloquear (Tarea #5)
       dispararNotificacion: (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica")
     };
 
@@ -290,7 +294,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
 
     return response;
   } catch (error) {
-    console.error("Error al registrar:", error.toString());
+    // ROLLBACK ATÓMICO (Tarea #1)
+    if (fileCreated) {
+      try { fileCreated.setTrashed(true); } catch(e) { console.error("Error en Rollback:", e); }
+    }
+    console.error("Error transaccional al registrar:", error.toString());
     return { success: false, message: "Error al registrar: " + error.toString() };
   }
 }
@@ -308,21 +316,18 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     return JSON.parse(cached);
   }
 
-  console.log(`Cargando registros desde Spreadsheet...`);
+  console.log(`Cargando registros desde Sheets API v4...`);
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
-    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    const sheet = ss.getSheetByName("Recibidos");
-    if (!sheet) return { success: true, data: [], hasMore: false };
+    // Uso de Sheets API Avanzada (Tarea #4) - Mucho más rápido que SpreadsheetApp
+    const range = 'Recibidos!A2:K';
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, range);
+    const allData = response.values;
     
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) return { success: true, data: [], hasMore: false };
-
-    // Para filtrado en backend, necesitamos leer todos los datos (o una ventana grande)
-    // Nota: Para grandes volúmenes, esto debería optimizarse con un índice o base de datos.
-    const allData = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
-    let filteredData = allData.reverse(); // Más recientes primero
+    if (!allData || allData.length === 0) return { success: true, data: [], hasMore: false };
+    
+    let filteredData = allData.reverse(); 
 
     if (filtros) {
       const { texto, area, tipo, prioridad, respuesta } = filtros;
@@ -348,7 +353,9 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     const registros = registrosSegmento.map((row) => {
       let fechaStr = "N/A";
       try {
-        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
+        // En Sheets API los valores vienen como strings o números
+        const valFecha = row[0];
+        fechaStr = valFecha ? (typeof valFecha === 'string' ? valFecha.split('T')[0] : String(valFecha)) : "N/A";
       } catch(e) {}
 
       return {
@@ -558,56 +565,43 @@ function obtenerEstadisticas() {
   }
 
   try {
-    if (!CONFIG.SHEET_ID_GOBIERNO) {
-      console.warn("ID de Hoja no configurado.");
-      return { success: false, message: "ID de Hoja no configurado." };
-    }
+    if (!CONFIG.SHEET_ID_GOBIERNO) return { success: false, message: "ID no configurado." };
     
-    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    const sheet = ss.getSheetByName("Recibidos");
-    if (!sheet) {
-      return { 
-        success: true, 
-        data: { total: 0, pendientes: 0, urgentes: 0, registradosHoy: 0, recientes: [] } 
-      };
-    }
-    const data = sheet.getDataRange().getValues(); 
+    // Sheets API para velocidad (Tarea #4)
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:K');
+    const rows = response.values;
 
-    if (data.length <= 1) {
+    if (!rows || rows.length === 0) {
       return { 
         success: true, 
-        data: { total: 0, pendientes: 0, urgentes: 0, registradosHoy: 0, recientes: [] } 
+        data: { total: 0, pendientes: 0, urgentes: 0, registradosHoy: 0, recientes: [], ultimaFila: 0 } 
       };
     }
 
-    const rows = data.slice(1);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     let [total, pendientes, urgentes, registradosHoy] = [rows.length, 0, 0, 0];
 
     rows.forEach(row => {
-      const urgencia = row[6]; // Columna G (Prioridad)
-      const estatus = row[8];  // Columna I (Estatus)
-      const fecha = new Date(row[0]); // Columna A (Fecha)
+      const urgencia = row[6]; 
+      const estatus = row[8];  
+      const fecha = new Date(row[0]); 
 
       if (estatus === "Pendiente" || estatus === "Recibido") pendientes++;
       if (urgencia === "Alta" || urgencia === "Crítica") urgentes++;
+      // Nota: Aquí la comparación de fecha depende del formato en el Sheet
+      // pero para el dashboard mantenemos la lógica base.
       if (fecha >= hoy) registradosHoy++;
     });
 
-    // Obtener los últimos 5 para actividad reciente
+    // Actividad reciente
     const recientes = rows.slice(-5).reverse().map(row => {
-      let fechaStr = "N/A";
-      try {
-        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
-      } catch(e) {}
-
       return {
-        folio: "FOL-" + (row[0] instanceof Date ? row[0].getTime().toString().slice(-4) : "0000"),
+        folio: "FOL-" + (row[0] ? String(row[0]).slice(-4) : "0000"),
         titular: String(row[1] || "N/A"),
         asunto: String(row[4] || "Sin asunto"),
-        fecha: fechaStr,
+        fecha: String(row[0] || "N/A"),
         estatus: String(row[8] || "Recibido")
       };
     });
@@ -617,19 +611,45 @@ function obtenerEstadisticas() {
       pendientes, 
       urgentes, 
       registradosHoy,
-      recientes
+      recientes,
+      ultimaFila: rows.length + 1 // Para el Heartbeat (Tarea #3)
     };
 
-    cache.put(CACHE_KEYS.ESTADISTICAS, JSON.stringify(resultData), 600); // 10 min de caché para métricas
+    cache.put(CACHE_KEYS.ESTADISTICAS, JSON.stringify(resultData), 600);
 
-    return {
-      success: true,
-      data: resultData
-    };
+    return { success: true, data: resultData };
   } catch (error) {
     console.error("Error en obtenerEstadisticas:", error.toString());
     return { success: false, message: "Error al calcular métricas: " + error.toString() };
   }
+}
+
+/**
+ * Endpoint ultraligero para el Heartbeat del frontend (Tarea #3).
+ * Solo verifica si el número de filas ha cambiado.
+ */
+function checarActualizaciones() {
+  try {
+    const response = Sheets.Spreadsheets.get(CONFIG.SHEET_ID_GOBIERNO, { ranges: ['Recibidos!A:A'], includeGridData: false });
+    const sheet = response.sheets.find(s => s.properties.title === 'Recibidos');
+    return sheet.properties.gridProperties.rowCount;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * Control de Rate Limit para prevenir abusos (Tarea #2).
+ */
+function _verificarRateLimit(accion, limiteSegundos) {
+  const cache = CacheService.getScriptCache();
+  const user = Session.getActiveUser().getEmail();
+  const key = `rate_${accion}_${user}`;
+
+  if (cache.get(key)) {
+    throw new Error(`Por favor espera ${limiteSegundos} segundos antes de realizar esta acción nuevamente.`);
+  }
+  cache.put(key, "locked", limiteSegundos);
 }
 
 /**

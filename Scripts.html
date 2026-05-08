@@ -16,7 +16,8 @@
     oficioParaRespuesta: null,
     isProcessing: false,
     isSidebarCollapsed: localStorage.getItem('dsa-sidebar') === 'true',
-    isDark: localStorage.getItem('dsa-theme') === 'dark'
+    isDark: localStorage.getItem('dsa-theme') === 'dark',
+    ultimaFilaConocida: 0
   }, {
     set(target, prop, value) {
       const old = target[prop];
@@ -194,7 +195,6 @@
       }
     });
 
-    // Restaurar sidebar
     if (AppState.isSidebarCollapsed) {
       document.querySelector('.mac-sidebar')?.classList.add('collapsed');
       const icon = document.getElementById('sidebar-icon');
@@ -202,6 +202,23 @@
       const label = document.querySelector('[onclick="toggleSidebar()"] span');
       if (label) label.innerText = 'Expandir';
     }
+
+    // --- ELITE HEARTBEAT (Tarea #3) ---
+    // Sincronización silenciosa cada 30 segundos
+    setInterval(() => {
+      // Solo si el usuario está en el dashboard y no hay procesos bloqueantes
+      if (AppState.vistaActual === 'v-dashboard' && !AppState.isProcessing) {
+        google.script.run
+          .withSuccessHandler(nuevaUltimaFila => {
+            if (nuevaUltimaFila > AppState.ultimaFilaConocida && AppState.ultimaFilaConocida !== 0) {
+              console.log("Detectados datos nuevos. Sincronizando dashboard...");
+              cargarEstadisticasInicio(true); // Carga silenciosa
+            }
+            AppState.ultimaFilaConocida = nuevaUltimaFila;
+          })
+          .checarActualizaciones();
+      }
+    }, 30000);
   });
 
 
@@ -554,7 +571,11 @@
 
   // --- GESTOR DE INICIO (DASHBOARD) ---
 
-  function cargarEstadisticasInicio() {
+  function cargarEstadisticasInicio(silent = false) {
+    if (!silent) {
+      // Opcional: mostrar un mini loader o skeleton si no es carga silenciosa
+    }
+
     google.script.run
       .withSuccessHandler(res => {
         if (res && res.success) {
@@ -563,6 +584,8 @@
           document.getElementById('stat-pendientes').innerText = d.pendientes || 0;
           document.getElementById('stat-urgentes').innerText = d.urgentes || 0;
           document.getElementById('stat-hoy').innerText = d.registradosHoy || 0;
+          
+          AppState.ultimaFilaConocida = d.ultimaFila || 0;
           
           const total = d.total || 0;
           const pendientes = d.pendientes || 0;
@@ -688,12 +711,17 @@
     document.querySelectorAll('#tabla-biblioteca-body tr').forEach(tr => tr.classList.remove('table-active'));
   }
 
-  // --- MENÚ CONTEXTUAL ---
+  // --- MENÚ CONTEXTUAL (Tarea #5) ---
+  let _contextMenuInicializado = false;
 
   function initContextMenu() {
+    if (_contextMenuInicializado) return;
     const menu = document.getElementById('context-menu');
     
-    document.addEventListener('click', () => menu.classList.add('d-none'));
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#context-menu')) menu.classList.add('d-none');
+    });
+
     document.addEventListener('contextmenu', (e) => {
       const row = e.target.closest('#tabla-biblioteca-body tr');
       if (!row) {
@@ -723,16 +751,17 @@
       
       menu.classList.remove('d-none');
       
-      // Posicionamiento inteligente (evitar que se salga de la pantalla)
+      // Posicionamiento inteligente
       let x = e.clientX;
       let y = e.clientY;
-      
       if (x + 200 > window.innerWidth) x -= 200;
       if (y + 200 > window.innerHeight) y -= 200;
       
       menu.style.left = x + 'px';
       menu.style.top = y + 'px';
     });
+
+    _contextMenuInicializado = true;
   }
 
   function _copiarAlPortapapeles(texto) {
