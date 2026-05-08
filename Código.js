@@ -12,7 +12,7 @@ const getProp = (key) => PropertiesService.getScriptProperties().getProperty(key
 const CONFIG = {
   // IDs de Google Workspace (Configurado vía Script Properties)
   FOLDER_ID_OFICIOS: getProp("FOLDER_ID_OFICIOS"),
-  SHEET_ID_GOBIERNO: getProp("SHEET_ID_GOBIERNO"),
+  SHEET_ID_GOBIERNO: getProp("SHEET_ID_GOBIERNO") || "1h9Fa1Q513OYObI-JwcpVpZ-OFUIAvreya5ITRp6WXcM",
   
   // Configuración de Gemini (Google AI Studio - Zero Cost)
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
@@ -211,8 +211,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     // 2. Indexación en Google Sheets (Libro de Gobierno)
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no está configurado en las Propiedades del Script.");
     
-    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    const sheet = ss.getSheets()[0]; // Usar la primera hoja si no sabemos el nombre
+    let sheet = ss.getSheetByName("Recibidos");
+    if (!sheet) {
+      sheet = ss.insertSheet("Recibidos");
+      sheet.appendRow(["FECHA", "TITULAR", "ÁREA", "OFICIO", "ASUNTO", "TIPO", "PRIORIDAD", "RESPUESTA", "ESTATUS", "URL", "AUDITORÍA"]);
+    }
 
     const nuevaFila = [
       new Date(), // A: Fecha de recepción
@@ -259,7 +262,9 @@ function obtenerRegistros() {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    const sheet = ss.getSheets()[0];
+    const sheet = ss.getSheetByName("Recibidos");
+    if (!sheet) return { success: true, data: [] };
+    
     const data = sheet.getDataRange().getValues();
     
     if (data.length <= 1) return { success: true, data: [] };
@@ -457,7 +462,13 @@ function obtenerEstadisticas() {
     }
     
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    const sheet = ss.getSheets()[0];
+    const sheet = ss.getSheetByName("Recibidos");
+    if (!sheet) {
+      return { 
+        success: true, 
+        data: { total: 0, pendientes: 0, urgentes: 0, registradosHoy: 0, recientes: [] } 
+      };
+    }
     const data = sheet.getDataRange().getValues(); 
     console.log(`Datos obtenidos: ${data.length} filas.`);
 
