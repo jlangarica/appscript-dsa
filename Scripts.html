@@ -1216,6 +1216,18 @@ const DSA_App = (function() {
     }
   }
 
+  /**
+   * Detecta el Sistema Operativo para ajustar los atajos de teclado (UX).
+   */
+  function _detectarOS() {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    if (!isMac) {
+      document.querySelectorAll('.mac-kbd').forEach(el => {
+        el.innerText = 'Ctrl+K';
+      });
+    }
+  }
+
   // --- API PÚBLICA (Exposición controlada - Tarea #2) ---
   return {
     init,
