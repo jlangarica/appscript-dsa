@@ -6,37 +6,84 @@
 ---
 
 [![Google Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-4285F4?style=for-the-badge&logo=google-apps-script&logoColor=white)](https://developers.google.com/apps-script)
-[![Gemini AI](https://img.shields.io/badge/Gemini%201.5%20Flash-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![Gemini AI](https://img.shields.io/badge/Gemini%202.5%20Flash--Lite-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)](https://github.com/jlangarica/appscript-dsa)
+[![Architecture](https://img.shields.io/badge/Architecture-Multimodal%20Single--Pass-blueviolet?style=for-the-badge)](https://github.com/jlangarica/appscript-dsa)
 
 ## 💎 Visión General
-El ecosistema **DSA (División de Servicios Administrativos)** redefine la gestión documental institucional mediante la convergencia de **Inteligencia Artificial Multimodal** y la robustez de **Google Workspace**. Diseñado para operar bajo un modelo de **Zero-Cost Infrastructure**, el sistema orquestra flujos complejos de OCR forense y análisis semántico, transformando documentos físicos en activos digitales accionables en milisegundos.
+El ecosistema **DSA (División de Servicios Administrativos)** redefine la gestión documental institucional mediante una arquitectura de **IA Multimodal de vanguardia**. A diferencia de los sistemas tradicionales de OCR secuencial, el DSA utiliza el motor **Gemini 2.5 Flash-Lite** para realizar la extracción de texto y el razonamiento semántico en un **único paso atómico**, garantizando una latencia mínima y una precisión forense sin costos de infraestructura de servidor (Zero-Cost Infrastructure).
 
-### 🌟 Pilares del Sistema
-*   **🧠 Inteligencia Cognitiva**: Extracción de datos mediante Gemini 1.5 Flash y Document AI.
-*   **⚡ Arquitectura Reactiva**: SPA (Single Page Application) fluida con comunicación asíncrona RPC.
-*   **🛡️ Integridad Transaccional**: Control de concurrencia y persistencia atómica en Google Sheets.
-*   **📊 Escalabilidad Serverless**: Ejecución distribuida sobre el motor V8 de Apps Script.
+### 🌟 Pilares de Alta Ingeniería
+*   **🧠 Extracción Multimodal**: Procesamiento nativo de archivos PDF mediante `inline_data`, eliminando la necesidad de capas intermedias de OCR.
+*   **⚡ Reactividad con Estado (Proxy-based)**: Frontend SPA construido con un patrón de **Reactive Proxy** para la gestión de estado local sincronizada.
+*   **🛡️ Robustez Transaccional**: Implementación de reintentos exponenciales y `LockService` para garantizar la integridad en entornos multiusuario de alta concurrencia.
+*   **📝 Redacción Asistida**: Generación de respuestas oficiales profesionalizadas mediante modelos de lenguaje integrados en el flujo de trabajo.
 
 ---
 
-## 🛠️ Stack Tecnológico de Vanguardia
+## 🛠️ Stack Tecnológico de Elite
 
-| Capa | Componente | Descripción |
+| Capa | Componente | Implementación Técnica |
 | :--- | :--- | :--- |
-| **Core Engine** | Google Apps Script (V8) | Motor de orquestación y lógica de negocio. |
-| **Frontend** | Modern HTML5 / CSS3 / JS | Interfaz premium con Micro-animaciones y Glassmorphism. |
-| **AI Intelligence** | Gemini 1.5 + Doc AI | Procesamiento de Lenguaje Natural y OCR Forense. |
-| **Data Lake** | Google Sheets / Drive | Persistencia estructurada y gestión de expedientes. |
-| **DevOps** | Clasp / TypeScript | Ciclo de vida de desarrollo profesional y tipado fuerte. |
+| **Core Engine** | Apps Script (V8) | Orquestación serverless de alta disponibilidad. |
+| **Inteligencia** | Gemini 2.5 Flash-Lite | Extracción de metadatos (titular, área, asunto, prioridad). |
+| **Frontend UI** | HTML5 / CSS3 / JS | Estética **Apple/MacOS Native** con Glassmorphism y Dark Mode. |
+| **Data Layer** | Google Sheets & Drive | Persistencia atómica y organización jerárquica Year/Month/Day. |
+| **Optimización** | CacheService | Capa de caché para métricas de Dashboard y consultas a Biblioteca. |
+| **Seguridad** | PropertiesService | Gestión segura de API Keys y parámetros de entorno. |
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ Arquitectura Técnica
 
-### **Flujo de Procesamiento Inteligente**
-El sistema implementa un pipeline resiliente que garantiza la captura, análisis y registro de cada documento con una tasa de precisión superior al 98%.
+### **Evolución: Flujo Multimodal Atómico (Actual)**
+La implementación actual optimiza el pipeline eliminando la dependencia de Document AI, consolidando toda la inteligencia en una única llamada multimodal a Gemini.
+
+```mermaid
+%%{init: {
+  "theme": "dark",
+  "themeVariables": {
+    "primaryColor": "#1a1a2e",
+    "primaryTextColor": "#ffffff",
+    "lineColor": "#7a7aaa"
+  }
+}}%%
+graph LR
+    subgraph Client ["Capa de Usuario (Frontend)"]
+        UI["SPA Index.html"]
+        Store["State Proxy (JS)"]
+    end
+
+    subgraph Intelligence ["Motor de Inteligencia"]
+        G["Gemini 2.5 Flash-Lite"]
+    end
+
+    subgraph Backend ["Capa de Orquestación (GAS)"]
+        RPC["google.script.run"]
+        Logic["Código.js (Backend)"]
+        Lock["LockService"]
+    end
+
+    subgraph Persistence ["Persistencia & Almacenamiento"]
+        Drive["Google Drive (Hierarchical)"]
+        Sheets["Libro de Gobierno (Recibidos/Generados)"]
+        Cache["CacheService (Performance)"]
+    end
+
+    UI -- "PDF (Base64)" --> RPC
+    RPC --> Logic
+    Logic -- "Single-Pass Extraction" --> G
+    G -- "JSON Estructurado" --> Logic
+    Logic --> Lock
+    Lock -- "Atomic Write" --> Sheets
+    Logic -- "UUID Persist" --> Drive
+    Logic -- "Invalidate" --> Cache
+    Sheets -.-> Store
+    Store -.-> UI
+```
+
+### **Diagrama de Secuencia de Referencia (Legacy/Híbrido)**
+*Este diagrama representa la arquitectura base del flujo de trabajo institucional.*
 
 ```mermaid
 %%{init: {
@@ -183,10 +230,11 @@ sequenceDiagram
 
 ---
 
-## 🎨 Ecosistema Frontend (SPA)
-La interfaz de usuario ha sido concebida bajo principios de **Diseño Atómico**, proporcionando una experiencia fluida y reactiva que minimiza la carga cognitiva del operador.
+## 🎨 Ecosistema Frontend (MacOS Native SPA)
+La interfaz de usuario ha sido concebida bajo principios de **Diseño Atómico** y estética MacOS, proporcionando una experiencia fluida que minimiza la carga cognitiva.
 
-### **Estructura del Componente y Estado**
+### **Gestión de Estado Reactiva**
+El sistema implementa un objeto `AppState` basado en **JavaScript Proxies**, permitiendo que la UI se actualice automáticamente ante cambios en los datos extraídos o el estado del procesamiento.
 
 ```mermaid
 %%{init: {
@@ -268,44 +316,26 @@ classDef external fill:#95a5a6,stroke:#7f8c8d,color:#fff
     Paso3 -->|Confirma| APICall
 ```
 
-### **Características Elite del UI**
-1.  **Validación Dual (Split View)**: Comparativa en tiempo real entre el documento fuente (PDF) y la interpretación de la IA, eliminando errores de transcripción.
-2.  **Micro-interacciones**: Feedback visual instantáneo en cada etapa del proceso mediante estados de carga y transiciones fluidas.
-3.  **Diseño Adaptativo**: Experiencia optimizada tanto para estaciones de trabajo de alta resolución como para dispositivos móviles de supervisión.
+---
+
+## ⚡ Características de Alta Ingeniería
+1.  **Redacción Profesional Asistida**: Módulo integrado que utiliza Gemini para transformar notas rápidas del usuario en oficios de respuesta formales y jurídicamente estructurados.
+2.  **Validación Dual Atómica**: Interfaz de "Split View" que garantiza que los datos indexados coincidan exactamente con la fuente forense (PDF original).
+3.  **Caché de Alto Rendimiento**: Implementación de `CacheService` con expiración inteligente para servir métricas de Dashboard en <200ms.
+4.  **Resiliencia Exponencial**: Algoritmos de backoff en llamadas a APIs externas para mitigar errores de `Rate Limit` (HTTP 429).
 
 ---
 
-## 🚀 Despliegue y Gobernanza
-El desarrollo sigue estándares estrictos de **Clean Code** y **SOLID**, gestionado a través de un workflow profesional de CI/CD simulado con Clasp.
-
-### **Pasos para el Entorno de Desarrollo**
-1.  **Sincronización**:
-    ```bash
-    git clone https://github.com/jlangarica/appscript-dsa.git
-    npm install
-    ```
-2.  **Autenticación y Enlace**:
-    ```bash
-    clasp login
-    clasp clone <YOUR_SCRIPT_ID>
-    ```
-3.  **Despliegue Atómico**:
-    ```bash
-    clasp push
-    ```
-
----
-
-## 🛡️ Seguridad y Optimización (Nivel Experto)
-*   **Batching Performance**: Implementación de `setValues()` y `getValues()` para reducir el overhead de la API de Google Sheets en un 90%.
-*   **Concurrency Guard**: Uso de `LockService` (Script Lock) para garantizar la atomicidad en el Libro de Gobierno.
-*   **Secrets Management**: Las API Keys y credenciales críticas se almacenan exclusivamente en `PropertiesService`.
-*   **Observabilidad**: Logs estructurados en JSON enrutados automáticamente a Google Cloud Logging (Stackdriver).
+## 🛡️ Seguridad y Gobierno de Datos
+*   **Aislamiento de Secretos**: Todas las credenciales se gestionan vía `PropertiesService`, evitando fugas de información en el código fuente.
+*   **Control de Concurrencia**: Uso de `LockService.getScriptLock()` para prevenir colisiones en el Libro de Gobierno durante accesos simultáneos.
+*   **Audit Trail**: Registro automático del usuario activo en cada transacción para cumplimiento normativo.
+*   **Organización Orgánica**: Estructura de Drive auto-generada por fecha para facilitar auditorías físicas y digitales.
 
 ---
 
 > [!IMPORTANT]
-> **Motor V8 Requerido**: El sistema utiliza características de ES2020+ (Optional Chaining, Nullish Coalescing, Async/Await). Asegúrese de que el entorno de ejecución esté configurado correctamente en el manifiesto `appsscript.json`.
+> **Compatibilidad V8**: El sistema requiere que el motor V8 esté habilitado en `appsscript.json`. Utiliza sintaxis moderna como `optional chaining`, `nullish coalescing` y `async/await`.
 
 ---
 <div align="center">
