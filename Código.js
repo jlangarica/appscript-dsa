@@ -10,9 +10,9 @@
 const getProp = (key) => PropertiesService.getScriptProperties().getProperty(key);
 
 const CONFIG = {
-  // Document AI
-  GCP_PROJECT_ID: getProp("GCP_PROJECT_ID") || "644299184353",
-  DOC_AI_LOCATION: "us",
+  // Document AI (Configurado vía Script Properties)
+  GCP_PROJECT_ID: getProp("GCP_PROJECT_ID"),
+  DOC_AI_LOCATION: getProp("DOC_AI_LOCATION") || "us",
   DOC_AI_PROCESSOR_ID: getProp("DOC_AI_PROCESSOR_ID"),
   
   // IDs de Google Workspace
@@ -64,7 +64,7 @@ function procesarDocumento(base64Data, fileName) {
     const decodedData = Utilities.base64Decode(base64Data);
     const pdfBlob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
 
-    // Paso 1: OCR Forense
+    // Paso 1: OCR Forense (Document AI)
     const textoCrudo = llamarDocumentAI(pdfBlob);
     if (!textoCrudo) throw new Error("Document AI no extrajo texto.");
 
@@ -83,10 +83,16 @@ function procesarDocumento(base64Data, fileName) {
 
 /**
  * Llama a Google Cloud Document AI.
+ * @param {Blob} pdfBlob El archivo a procesar.
+ * @return {string} Texto extraído.
  * @private
  */
 function llamarDocumentAI(pdfBlob) {
-  const endpoint = `https://us-documentai.googleapis.com/v1/projects/${CONFIG.GCP_PROJECT_ID}/locations/${CONFIG.DOC_AI_LOCATION}/processors/${CONFIG.DOC_AI_PROCESSOR_ID}:process`;
+  if (!CONFIG.GCP_PROJECT_ID || !CONFIG.DOC_AI_PROCESSOR_ID) {
+    throw new Error("Configuración incompleta: Faltan IDs de Document AI en Properties.");
+  }
+
+  const endpoint = `https://${CONFIG.DOC_AI_LOCATION}-documentai.googleapis.com/v1/projects/${CONFIG.GCP_PROJECT_ID}/locations/${CONFIG.DOC_AI_LOCATION}/processors/${CONFIG.DOC_AI_PROCESSOR_ID}:process`;
   
   const payload = {
     "rawDocument": {
@@ -111,7 +117,9 @@ function llamarDocumentAI(pdfBlob) {
 }
 
 /**
- * Llama a la API de Gemini 1.5 Flash.
+ * Llama a la API de Gemini para procesamiento de texto.
+ * @param {string} textoExtraido Texto obtenido del OCR.
+ * @return {Object} JSON estructurado.
  * @private
  */
 function llamarGemini(textoExtraido) {
@@ -119,16 +127,16 @@ function llamarGemini(textoExtraido) {
   
   const systemPrompt = `
     Eres un experto analista documental gubernamental.
-    Extrae un objeto JSON con:
+    Extrae un objeto JSON del siguiente texto:
     - "remitente": Dependencia emisora.
     - "oficio": Número de oficio/folio.
     - "asunto": Resumen breve (máx 15 palabras).
     - "urgencia": "Alta" o "Normal".
+    Responde ÚNICAMENTE con el JSON.
   `;
 
   const payload = {
     "contents": [{
-      "role": "user",
       "parts": [
         { "text": systemPrompt },
         { "text": "\n--- TEXTO OCR ---\n" + textoExtraido }
