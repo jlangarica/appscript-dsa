@@ -149,6 +149,7 @@ const DSA_App = (function() {
     initDragAndDrop();
     initContextMenu();
     _detectarOS();
+    _initEventDelegation();
     
     // Aplicar tema inicial
     if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
