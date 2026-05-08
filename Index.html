@@ -48,18 +48,22 @@
   </nav>
 
   <!-- MAIN CONTENT AREA -->
-  <main>
+  <main class="p-0">
+    <header class="mac-topbar d-flex justify-content-between align-items-center px-4 py-3">
+      <div class="fw-medium text-secondary" id="app-breadcrumb">Inicio <span class="mx-2">/</span> Resumen</div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="input-group search-wrapper" style="width: 250px;">
+           <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary z-index-1" style="font-size: 0.8rem;"></i>
+           <input type="text" class="mac-input ps-5 py-1 rounded-pill" placeholder="Buscar en el sistema...">
+           <div class="mac-kbd" style="font-size: 0.6rem;">⌘K</div>
+        </div>
+        <div class="avatar-circle bg-primary text-white">AD</div>
+      </div>
+    </header>
     
+    <div class="px-4 pb-5">
     <!-- VISTA: DASHBOARD -->
     <div id="v-dashboard" class="vista">
-      <div class="d-flex justify-content-between align-items-end mb-5">
-        <div>
-          <h1 class="fw-bold tracking-tight mb-1">Resumen</h1>
-          <p class="text-secondary small">Estado actual de la gestión documental</p>
-        </div>
-        <span class="text-secondary small mb-2"><?= new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }) ?></span>
-      </div>
-
       <div class="row g-4 mb-5">
         <div class="col-md-3">
           <div class="apple-stats-card">
@@ -86,63 +90,72 @@
           </div>
         </div>
         <div class="col-md-3">
-          <div class="apple-stats-card text-center d-flex flex-column align-items-center">
+          <div class="apple-stats-card text-center d-flex flex-column align-items-center justify-content-center">
             <div class="stats-label">Precisión de Lectura</div>
             <div class="donut-chart mb-2">
               <svg width="80" height="80" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-gray6)" stroke-width="3"></circle>
                 <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-blue)" stroke-width="3" stroke-dasharray="85 15" stroke-dashoffset="25" stroke-linecap="round"></circle>
               </svg>
-              <div class="position-absolute top-50 left-50 translate-middle fw-bold" style="font-size: 0.9rem;">85%</div>
+              <div class="position-absolute top-50 start-50 translate-middle fw-bold" style="font-size: 0.9rem;">85%</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="mac-card">
-        <div class="mac-card-header">
-          <span class="fw-semibold small">ACTIVIDAD RECIENTE</span>
-          <div class="traffic-lights">
-            <div class="dot red"></div>
-            <div class="dot yellow"></div>
-            <div class="dot green"></div>
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="mac-card mb-0">
+            <div class="mac-card-header">
+              <span class="fw-semibold small">ACTIVIDAD RECIENTE</span>
+              <div class="traffic-lights">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+              </div>
+            </div>
+            <div class="p-0">
+              <table class="table table-hover mb-0 align-middle">
+                <thead class="mac-table-head">
+                  <tr class="text-secondary small">
+                    <th class="ps-4 py-3">FOLIO</th>
+                    <th>REMITENTE</th>
+                    <th>ASUNTO</th>
+                    <th>FECHA</th>
+                    <th class="pe-4">ESTATUS</th>
+                  </tr>
+                </thead>
+                <tbody class="border-top-0" id="tabla-recientes-body">
+                  <!-- Skeletons... -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div class="p-0">
-          <table class="table table-hover mb-0 align-middle">
-            <thead class="mac-table-head">
-              <tr class="text-secondary small">
-                <th class="ps-4 py-3">FOLIO</th>
-                <th>REMITENTE</th>
-                <th>ASUNTO</th>
-                <th>FECHA</th>
-                <th class="pe-4">ESTATUS</th>
-              </tr>
-            </thead>
-            <tbody class="border-top-0" id="tabla-recientes-body">
-              <tr>
-                <td class="ps-4"><div class="skeleton-box" style="width: 50px;"></div></td>
-                <td><div class="skeleton-box" style="width: 120px;"></div></td>
-                <td><div class="skeleton-box" style="width: 80%;"></div></td>
-                <td><div class="skeleton-box" style="width: 70px;"></div></td>
-                <td class="pe-4"><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
-              </tr>
-              <tr>
-                <td class="ps-4"><div class="skeleton-box" style="width: 50px;"></div></td>
-                <td><div class="skeleton-box" style="width: 100px;"></div></td>
-                <td><div class="skeleton-box" style="width: 60%;"></div></td>
-                <td><div class="skeleton-box" style="width: 70px;"></div></td>
-                <td class="pe-4"><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
-              </tr>
-              <tr>
-                <td class="ps-4"><div class="skeleton-box" style="width: 50px;"></div></td>
-                <td><div class="skeleton-box" style="width: 140px;"></div></td>
-                <td><div class="skeleton-box" style="width: 70%;"></div></td>
-                <td><div class="skeleton-box" style="width: 70px;"></div></td>
-                <td class="pe-4"><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
-              </tr>
-            </tbody>
-          </table>
+        
+        <div class="col-lg-4">
+          <div class="mac-card h-100 p-4 mb-0">
+            <h6 class="fw-bold mb-3">Acciones Rápidas</h6>
+            <button class="btn btn-light w-100 text-start mb-2 shadow-sm rounded-3 py-2 border-0" onclick="cambiarVista('v-registro')" style="background: var(--system-gray6);">
+              <i class="bi bi-file-earmark-plus text-primary me-2"></i> Subir Oficio
+            </button>
+            <button class="btn btn-light w-100 text-start mb-4 shadow-sm rounded-3 py-2 border-0" onclick="cambiarVista('v-archivo')" style="background: var(--system-gray6);">
+              <i class="bi bi-search text-success me-2"></i> Buscar Documento
+            </button>
+
+            <h6 class="fw-bold mb-3 text-secondary mt-2">Almacenamiento Drive</h6>
+            <div class="progress-stepper mb-2" style="height: 6px;">
+              <div class="progress-bar-fill" style="width: 25%;"></div>
+            </div>
+            <div class="small text-secondary text-end">1.2 GB / 15 GB</div>
+            
+            <hr class="my-4 opacity-50">
+            
+            <h6 class="fw-bold mb-3">Soporte Técnico</h6>
+            <div class="alert bg-primary-subtle text-primary border-0 rounded-4 small p-3">
+              ¿Problemas con la extracción? Reporta el caso a sistemas.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -210,69 +223,76 @@
           </div>
           
           <div class="col-lg-5">
-            <div class="mac-card h-100 mb-0 p-4">
-              <div class="d-flex align-items-center gap-2 mb-4">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
-                  <i class="bi bi-clipboard-check small"></i>
-                </div>
-                <h5 class="fw-bold mb-0">Metadatos Detectados</h5>
+            <div class="mac-card mb-0 p-0 d-flex flex-column" style="height: 70vh;">
+              <div class="mac-card-header">
+                <span class="small fw-semibold">DATOS DETECTADOS</span>
+                <i class="bi bi-robot text-primary"></i>
+              </div>
+              
+              <div class="p-4 overflow-auto flex-grow-1">
+                <form id="form-datos">
+                  <div class="form-section">
+                    <div class="small fw-bold mb-3 text-secondary">ORIGEN DEL DOCUMENTO</div>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">TITULAR / FIRMANTE</label>
+                        <input type="text" id="campo-titular" class="mac-input" placeholder="Nombre completo">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
+                        <input type="text" id="campo-area" class="mac-input" placeholder="Área emisora">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="form-section">
+                    <div class="small fw-bold mb-3 text-secondary">IDENTIFICACIÓN</div>
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold text-secondary">NÚMERO DE OFICIO</label>
+                      <input type="text" id="campo-oficio" class="mac-input" placeholder="Ej: SEGOB/045/2026">
+                    </div>
+                    <div class="mb-0">
+                      <label class="form-label small fw-semibold text-secondary">ASUNTO / SÍNTESIS</label>
+                      <textarea id="campo-asunto" class="mac-input" rows="2" placeholder="Breve descripción..."></textarea>
+                    </div>
+                  </div>
+
+                  <div class="form-section">
+                    <div class="small fw-bold mb-3 text-secondary">CLASIFICACIÓN OPERATIVA</div>
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">TIPO</label>
+                        <select id="campo-tipo-doc" class="mac-input">
+                          <option value="Informativo">Informativo</option>
+                          <option value="Solicitud">Solicitud</option>
+                          <option value="Requerimiento">Requerimiento</option>
+                          <option value="Circular">Circular</option>
+                          <option value="Invitación">Invitación</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">PRIORIDAD</label>
+                        <select id="campo-urgencia" class="mac-input">
+                          <option value="Baja">Baja</option>
+                          <option value="Normal" selected>Normal</option>
+                          <option value="Alta">Alta</option>
+                          <option value="Crítica">Crítica</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-check form-switch ms-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="campo-requiere-respuesta">
+                      <label class="form-check-label small fw-medium" for="campo-requiere-respuesta">¿Requiere respuesta oficial?</label>
+                    </div>
+                  </div>
+                </form>
               </div>
 
-              <form id="form-datos">
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold text-secondary">TITULAR / FIRMANTE</label>
-                    <input type="text" id="campo-titular" class="mac-input" placeholder="Nombre completo">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
-                    <input type="text" id="campo-area" class="mac-input" placeholder="Área emisora">
-                  </div>
-                </div>
-                
-                <div class="mb-3">
-                  <label class="form-label small fw-semibold text-secondary">NÚMERO DE OFICIO</label>
-                  <input type="text" id="campo-oficio" class="mac-input" placeholder="Ej: SEGOB/045/2026">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small fw-semibold text-secondary">ASUNTO / SÍNTESIS</label>
-                  <textarea id="campo-asunto" class="mac-input" rows="3" placeholder="Breve descripción..."></textarea>
-                </div>
-
-                <div class="row g-3 mb-4">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold text-secondary">TIPO DE DOCUMENTO</label>
-                    <select id="campo-tipo-doc" class="mac-input">
-                      <option value="Informativo">Informativo</option>
-                      <option value="Solicitud">Solicitud</option>
-                      <option value="Requerimiento">Requerimiento</option>
-                      <option value="Circular">Circular</option>
-                      <option value="Invitación">Invitación</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold text-secondary">PRIORIDAD</label>
-                    <select id="campo-urgencia" class="mac-input">
-                      <option value="Baja">Baja</option>
-                      <option value="Normal" selected>Normal</option>
-                      <option value="Alta">Alta</option>
-                      <option value="Crítica">Crítica</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-check form-switch mb-4 ms-1">
-                  <input class="form-check-input" type="checkbox" role="switch" id="campo-requiere-respuesta">
-                  <label class="form-check-label small fw-medium" for="campo-requiere-respuesta">¿Requiere respuesta oficial?</label>
-                </div>
-
-                <div class="d-grid mt-2">
-                  <button type="button" class="apple-btn apple-btn-primary" onclick="validarYContinuar()">
-                    Revisar y Continuar
-                  </button>
-                </div>
-              </form>
+              <div class="sticky-bottom d-flex justify-content-end">
+                <button type="button" class="apple-btn apple-btn-primary w-100" onclick="validarYContinuar()">
+                  Revisar y Continuar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -314,13 +334,6 @@
 
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold">Biblioteca</h1>
-        <button class="apple-btn apple-btn-secondary" onclick="cargarBiblioteca()">
-          <i class="bi bi-arrow-clockwise me-2"></i> Actualizar
-        </button>
-      </div>
-
       <!-- Filtros Avanzados -->
       <div class="mac-card p-4 mb-4">
         <div class="row g-3">
@@ -339,73 +352,98 @@
           <div class="col-md-2">
             <select id="filtro-tipo" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
               <option value="">Todos los Tipos</option>
-              <option value="Informativo">Informativo</option>
-              <option value="Solicitud">Solicitud</option>
-              <option value="Requerimiento">Requerimiento</option>
-              <option value="Circular">Circular</option>
             </select>
           </div>
           <div class="col-md-2">
             <select id="filtro-prioridad" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Todas las Prioridades</option>
-              <option value="Baja">Baja</option>
-              <option value="Normal">Normal</option>
-              <option value="Alta">Alta</option>
-              <option value="Crítica">Crítica</option>
+              <option value="">Prioridad</option>
             </select>
           </div>
           <div class="col-md-2">
             <select id="filtro-respuesta" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Respuesta: Todas</option>
-              <option value="SÍ">Requiere Respuesta</option>
-              <option value="NO">No Requiere</option>
+              <option value="">Respuesta</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- Tabla de Resultados -->
-      <div class="mac-card">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0 align-middle">
-            <thead class="mac-table-head">
-              <tr class="text-secondary small">
-                <th class="ps-4">FECHA</th>
-                <th>TITULAR / ÁREA</th>
-                <th>OFICIO / TIPO</th>
-                <th>ASUNTO</th>
-                <th>PRIORIDAD</th>
-                <th class="pe-4 text-center">DOC</th>
-                <th class="pe-4 text-center">ACCION</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-biblioteca-body">
-              <!-- Se puebla dinámicamente -->
-            </tbody>
-          </table>
-        </div>
-        
-        <div id="empty-search" class="text-center py-5 d-none">
-          <i class="bi bi-search text-secondary opacity-25" style="font-size: 4rem;"></i>
-          <h4 class="mt-3 fw-semibold">Sin resultados</h4>
-          <p class="text-secondary mb-4">No se encontraron oficios que coincidan con los filtros actuales.</p>
-          <button class="apple-btn apple-btn-secondary" onclick="limpiarFiltrosYBuscar()">
-            <i class="bi bi-x-circle me-2"></i> Limpiar Filtros
-          </button>
+      <!-- Master-Detail Layout -->
+      <div class="d-flex w-100 gap-3" style="height: calc(100vh - 200px);">
+        <!-- MASTER: Tabla de Registros -->
+        <div id="biblio-master" class="flex-grow-1 overflow-auto mac-card mb-0 transition-all p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="mac-table-head">
+                <tr class="text-secondary small">
+                  <th class="ps-4">FECHA</th>
+                  <th>TITULAR / ÁREA</th>
+                  <th>OFICIO</th>
+                  <th>PRIORIDAD</th>
+                  <th class="pe-4 text-center">DOC</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-biblioteca-body">
+                <!-- Se puebla dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+          <div id="empty-search" class="text-center py-5 d-none">
+            <i class="bi bi-search text-secondary opacity-25" style="font-size: 3.5rem;"></i>
+            <h5 class="mt-3 fw-semibold">Sin resultados</h5>
+            <button class="apple-btn apple-btn-secondary mt-3" onclick="limpiarFiltrosYBuscar()">Limpiar</button>
+          </div>
+          <div class="text-center py-4 d-none" id="btn-cargar-mas">
+            <button class="apple-btn apple-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>
+          </div>
         </div>
 
-        <!-- BOTÓN CARGAR MÁS -->
-        <div class="text-center py-4 d-none" id="btn-cargar-mas">
-          <button class="apple-btn apple-btn-secondary px-5" onclick="cargarSiguientePagina()">
-            <i class="bi bi-arrow-down-short me-2"></i> Cargar más registros
-          </button>
+        <!-- DETAIL: Visualización Rápida -->
+        <div id="biblio-detail" class="d-none mac-detail-panel flex-shrink-0" style="width: 420px;">
+          <div class="p-4 overflow-auto h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2" id="det-folio-tag">FOL-0000</div>
+              <button class="btn-close" onclick="cerrarDetalle()"></button>
+            </div>
+            
+            <h4 id="det-asunto" class="fw-bold mb-1">Cargando asunto...</h4>
+            <p id="det-titular" class="text-secondary small mb-4">Nombre del titular</p>
+            
+            <div class="form-section mb-4">
+              <div class="row g-2">
+                <div class="col-5 text-secondary small fw-medium">Área:</div>
+                <div class="col-7 small" id="det-area">---</div>
+                <div class="col-5 text-secondary small fw-medium">Oficio:</div>
+                <div class="col-7 small font-monospace" id="det-oficio">---</div>
+                <div class="col-5 text-secondary small fw-medium">Tipo:</div>
+                <div class="col-7 small" id="det-tipo">---</div>
+                <div class="col-5 text-secondary small fw-medium">Prioridad:</div>
+                <div class="col-7 small" id="det-urgencia">---</div>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 mb-4">
+              <button class="apple-btn apple-btn-primary" id="btn-responder-det">
+                <i class="bi bi-reply-fill me-2"></i> Redactar Respuesta
+              </button>
+              <a href="#" target="_blank" class="apple-btn apple-btn-secondary text-center text-decoration-none" id="btn-ver-pdf-det">
+                <i class="bi bi-file-earmark-pdf me-2"></i> Ver Original
+              </a>
+            </div>
+
+            <hr class="my-4 opacity-50">
+            
+            <div class="text-secondary small mb-2 fw-bold">VISTA PREVIA RÁPIDA</div>
+            <div class="bg-light rounded-4 overflow-hidden border" style="height: 300px;">
+              <iframe id="pdf-viewer-det" class="w-100 h-100 border-0"></iframe>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+</main>
 
-  </main>
-
-  <!-- PANEL DE RESPUESTA (Slide-over) -->
+<!-- PANEL DE RESPUESTA (Slide-over) -->
   <div id="panel-overlay" class="d-none" style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; backdrop-filter: blur(2px); transition: opacity 0.3s; opacity: 0;" onclick="cerrarPanelRespuesta()"></div>
   <div id="panel-respuesta" class="d-none" style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); border-left: 1px solid var(--separator); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(100%);">
     <div class="p-4 h-100 d-flex flex-column">
