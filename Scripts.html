@@ -673,7 +673,9 @@
     document.getElementById('det-titular').innerText = reg.titular || "Anónimo";
     document.getElementById('det-area').innerText = reg.area || "N/A";
     document.getElementById('det-oficio').innerText = reg.oficio || "N/A";
-    document.getElementById('det-tipo').innerText = reg.tipo_doc || "Informativo";
+    document.getElementById('det-tipo').innerText = reg.tipo_doc || "N/A";
+    document.getElementById('det-vigencia').innerText = reg.vigencia || "1";
+    document.getElementById('det-transferencia').innerText = reg.transferencia || "---";
     document.getElementById('det-urgencia').innerText = reg.urgencia || "Normal";
     
     // Visor PDF (con ocultación previa para evitar flash blanco)
