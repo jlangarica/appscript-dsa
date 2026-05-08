@@ -1,0 +1,223 @@
+<script>
+  /**
+   * Oficialía de Partes Digital - Frontend Logic
+   * @author Antigravity AI
+   */
+
+  // --- CAPA DE ESTADO (Reactive Proxy) ---
+  const AppState = new Proxy({
+    vistaActual: 'v-dashboard',
+    pasoActual: 1,
+    pdfFile: null,
+    pdfBase64: null,
+    extractedData: null,
+    isProcessing: false
+  }, {
+    set(target, prop, value) {
+      target[prop] = value;
+      actualizarUI(prop, value);
+      return true;
+    }
+  });
+
+  // --- INICIALIZACIÓN ---
+  document.addEventListener('DOMContentLoaded', () => {
+    cambiarVista('v-dashboard');
+    initDragAndDrop();
+  });
+
+  // --- ENRUTADOR ---
+  function cambiarVista(idVista) {
+    document.querySelectorAll('.vista').forEach(v => v.classList.add('d-none'));
+    const target = document.getElementById(idVista);
+    if (target) {
+      target.classList.remove('d-none');
+      AppState.vistaActual = idVista;
+      
+      // Actualizar sidebar active state
+      document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('onclick')?.includes(idVista)) {
+          link.classList.add('active');
+        }
+      });
+    }
+  }
+
+  // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
+  function cambiarPaso(numeroPaso) {
+    document.querySelectorAll('.paso').forEach(p => p.classList.add('d-none'));
+    const target = document.getElementById(`paso-${numeroPaso}`);
+    if (target) {
+      target.classList.remove('d-none');
+      AppState.pasoActual = numeroPaso;
+    }
+  }
+
+  // --- GESTOR DE DOCUMENTOS ---
+  function initDragAndDrop() {
+    const dropzone = document.getElementById('dropzone');
+    const input = document.getElementById('pdf-input');
+
+    if (!dropzone) return;
+
+    dropzone.addEventListener('click', () => input.click());
+    
+    input.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    });
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const file = dt.files[0];
+      if (file && file.type === 'application/pdf') {
+        handleFile(file);
+      } else {
+        showToast('Error', 'Por favor selecciona un archivo PDF.', 'danger');
+      }
+    });
+  }
+
+  function handleFile(file) {
+    AppState.pdfFile = file;
+    
+    // Render PDF localmente
+    const objectUrl = URL.createObjectURL(file);
+    document.getElementById('pdf-viewer').src = objectUrl;
+
+    // Convertir a Base64 para GAS
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      AppState.pdfBase64 = e.target.result.split(',')[1];
+      procesarDocumento();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function procesarDocumento() {
+    AppState.isProcessing = true;
+    toggleLoading(true, "Analizando documento con IA...");
+
+    const payload = {
+      name: AppState.pdfFile.name,
+      mimeType: AppState.pdfFile.type,
+      base64: AppState.pdfBase64
+    };
+
+    google.script.run
+      .withSuccessHandler(response => {
+        if (response.success) {
+          AppState.extractedData = response.data;
+          poblarFormulario(response.data);
+          cambiarPaso(2);
+          showToast('Éxito', 'Datos extraídos correctamente.', 'success');
+        } else {
+          showToast('Error', response.message, 'danger');
+        }
+        AppState.isProcessing = false;
+        toggleLoading(false);
+      })
+      .withFailureHandler(err => {
+        showToast('Error de Servidor', err.message, 'danger');
+        AppState.isProcessing = false;
+        toggleLoading(false);
+      })
+      .processOCR(payload);
+  }
+
+  function poblarFormulario(data) {
+    document.getElementById('campo-remitente').value = data.remitente || '';
+    document.getElementById('campo-oficio').value = data.oficio || '';
+    document.getElementById('campo-asunto').value = data.asunto || '';
+    document.getElementById('campo-urgencia').value = data.urgencia || 'Normal';
+  }
+
+  // --- CONFIRMACIÓN FINAL ---
+  function registrarOficioFinal() {
+    const data = {
+      remitente: document.getElementById('campo-remitente').value,
+      oficio: document.getElementById('campo-oficio').value,
+      asunto: document.getElementById('campo-asunto').value,
+      urgencia: document.getElementById('campo-urgencia').value,
+      fileName: AppState.pdfFile.name
+    };
+
+    toggleLoading(true, "Registrando en Libro de Gobierno...");
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.success) {
+          showToast('Registrado', `Folio generado: ${res.folio}`, 'success');
+          resetForm();
+          cambiarVista('v-dashboard');
+        } else {
+          showToast('Error', res.message, 'danger');
+        }
+        toggleLoading(false);
+      })
+      .withFailureHandler(err => {
+        showToast('Error', err.message, 'danger');
+        toggleLoading(false);
+      })
+      .registrarOficio(data);
+  }
+
+  function resetForm() {
+    AppState.pasoActual = 1;
+    AppState.pdfFile = null;
+    AppState.pdfBase64 = null;
+    AppState.extractedData = null;
+    document.getElementById('form-datos').reset();
+    document.getElementById('pdf-viewer').src = 'about:blank';
+    cambiarPaso(1);
+  }
+
+  // --- UI HELPERS ---
+  function actualizarUI(prop, value) {
+    // Aquí se podrían añadir vinculaciones dinámicas complejas
+    if (prop === 'isProcessing') {
+      const btn = document.querySelector('#btn-procesar');
+      if (btn) btn.disabled = value;
+    }
+  }
+
+  function toggleLoading(show, message = "Procesando...") {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+      loader.classList.toggle('d-none', !show);
+      loader.querySelector('.loader-text').innerText = message;
+    }
+  }
+
+  function showToast(title, message, type = 'info') {
+    // Implementación simple de alert/toast
+    // En un entorno premium usaríamos SweetAlert2 o un Toast de Bootstrap
+    console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
+    const toastContainer = document.getElementById('toast-container');
+    const id = 'toast-' + Date.now();
+    
+    const html = `
+      <div id="${id}" class="toast show align-items-center text-white bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <strong>${title}</strong>: ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" onclick="document.getElementById('${id}').remove()"></button>
+        </div>
+      </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', html);
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }, 5000);
+  }
+</script>
