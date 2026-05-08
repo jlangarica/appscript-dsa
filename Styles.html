@@ -551,4 +551,35 @@
   .toast-exit {
     animation: slideOutScale 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
   }
+
+  /* --- ELITE UI IMPROVEMENTS --- */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+
+  .input-error {
+    border-color: var(--system-red) !important;
+    box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.1) !important;
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  .search-wrapper { position: relative; width: 100%; }
+  .mac-kbd {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--system-gray6);
+    border: 1px solid var(--separator);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  [data-theme="dark"] .mac-kbd { background: rgba(255,255,255,0.1); }
 </style>

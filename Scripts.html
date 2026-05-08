@@ -107,11 +107,22 @@
       searchInput.addEventListener('input', _debounce(() => aplicarFiltrosBiblioteca(), 300));
     }
 
-    // Auto-resize textareas
+    // Auto-resize textareas (Fluid Apple Style)
     document.querySelectorAll('textarea.mac-input').forEach(el => {
+      // Definir altura base
+      el.style.height = el.scrollHeight + 'px'; 
       el.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
+        // Guardar scroll actual para evitar saltos en la página
+        const scrollPos = window.scrollY;
+
+        // Magia: reducir a 1px para obtener el scrollHeight real del contenido actual
+        this.style.height = '1px'; 
+        const newHeight = this.scrollHeight;
+
+        // Restaurar el nuevo height
+        this.style.height = newHeight + 'px';
+
+        window.scrollTo(0, scrollPos);
       });
     });
 
@@ -182,6 +193,31 @@
     }
   }
 
+  /**
+   * Valida campos obligatorios en el Paso 2 antes de avanzar.
+   */
+  function validarYContinuar() {
+    let isValid = true;
+    const camposRequeridos = ['campo-titular', 'campo-oficio'];
+
+    camposRequeridos.forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('input-error'); // Reset
+      if (!el.value.trim()) {
+        // Forzar reflow para reiniciar la animación
+        void el.offsetWidth;
+        el.classList.add('input-error');
+        isValid = false;
+      }
+    });
+
+    if (isValid) {
+      cambiarPaso(3);
+    } else {
+      showToast('Campos Requeridos', 'Por favor completa los campos resaltados en rojo.', 'warning');
+    }
+  }
+
   // --- GESTOR DE DOCUMENTOS ---
   function initDragAndDrop() {
     const dropzone = document.getElementById('dropzone');
@@ -195,21 +231,29 @@
       if (e.target.files.length > 0) handleFile(e.target.files[0]);
     });
 
+    const dropText = dropzone.querySelector('h4');
+    const dropIcon = dropzone.querySelector('i');
+    const defaultText = dropText.innerText;
+
     ['dragenter', 'dragover'].forEach(eventName => {
       dropzone.addEventListener(eventName, e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         dropzone.style.borderColor = 'var(--system-blue)';
         dropzone.style.background = 'rgba(0, 122, 255, 0.05)';
+        dropzone.style.transform = 'scale(1.02)'; // Efecto de succión
+        dropText.innerText = "¡Suelta el archivo aquí!";
+        dropIcon.classList.replace('bi-file-earmark-arrow-up', 'bi-cloud-arrow-down-fill');
       }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
       dropzone.addEventListener(eventName, e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         dropzone.style.borderColor = '';
         dropzone.style.background = '';
+        dropzone.style.transform = 'scale(1)';
+        dropText.innerText = defaultText;
+        dropIcon.classList.replace('bi-cloud-arrow-down-fill', 'bi-file-earmark-arrow-up');
       }, false);
     });
 
@@ -741,13 +785,17 @@
     const color = colors[type] || colors.info;
     
     const html = `
-      <div id="${id}" class="mac-card mb-3 shadow-lg" style="width: 320px; border-left: 4px solid ${color}; animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div id="${id}" class="mb-3" style="width: 320px; border-left: 4px solid ${color}; 
+           background: var(--card-bg); backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
+           border-radius: 12px; border: 1px solid var(--separator); border-left-width: 4px;
+           box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+           animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
         <div class="p-3">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="fw-bold small" style="color: ${color}">${title.toUpperCase()}</span>
-            <button type="button" class="btn-close small" style="font-size: 0.7rem" onclick="document.getElementById('${id}').remove()"></button>
+            <span class="fw-bold small" style="color: ${color}; letter-spacing: 0.5px;">${title.toUpperCase()}</span>
+            <button type="button" class="btn-close small" style="font-size: 0.7rem; opacity: 0.5;" onclick="document.getElementById('${id}').remove()"></button>
           </div>
-          <div class="text-secondary small">${message}</div>
+          <div class="text-secondary small" style="line-height: 1.4;">${message}</div>
         </div>
       </div>
     `;

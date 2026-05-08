@@ -268,7 +268,7 @@
                 </div>
 
                 <div class="d-grid mt-2">
-                  <button type="button" class="apple-btn apple-btn-primary" onclick="cambiarPaso(3)">
+                  <button type="button" class="apple-btn apple-btn-primary" onclick="validarYContinuar()">
                     Revisar y Continuar
                   </button>
                 </div>
@@ -325,9 +325,10 @@
       <div class="mac-card p-4 mb-4">
         <div class="row g-3">
           <div class="col-md-4">
-            <div class="input-group">
+            <div class="input-group search-wrapper">
               <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
-              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2" placeholder="Buscar oficio... (Cmd + K)">
+              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2 pe-5" placeholder="Buscar oficio...">
+              <div class="mac-kbd">⌘K</div>
             </div>
           </div>
           <div class="col-md-2">
