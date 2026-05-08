@@ -345,7 +345,13 @@
             </div>
           </div>
           <div class="col-md-9">
-            <div class="d-flex gap-4 align-items-center">
+            <div class="d-flex gap-3 align-items-center flex-wrap">
+              <div style="min-width: 150px;">
+                <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">ÁREA / DEPENDENCIA</div>
+                <select id="filtro-area" class="mac-input py-1 small" onchange="aplicarFiltrosBiblioteca()">
+                  <option value="">Todas las Áreas</option>
+                </select>
+              </div>
               <div>
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">PRIORIDAD</div>
                 <div class="filter-chip-group" id="chip-prioridad">
@@ -373,7 +379,7 @@
                   <div class="filter-chip" onclick="seleccionarChip('respuesta', 'NO')">No</div>
                 </div>
               </div>
-              <div class="ms-auto">
+              <div class="ms-auto pt-3">
                 <button class="btn btn-link text-secondary p-0 small text-decoration-none" onclick="limpiarFiltrosYBuscar()">Limpiar</button>
               </div>
             </div>
