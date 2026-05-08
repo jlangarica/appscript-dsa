@@ -53,7 +53,7 @@
       target.classList.remove('d-none');
       
       // Actualizar sidebar active state
-      document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+      document.querySelectorAll('.mac-nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('onclick')?.includes(idVista)) {
           link.classList.add('active');
@@ -99,6 +99,17 @@
       target.classList.remove('d-none');
       AppState.pasoActual = numeroPaso;
       
+      // Actualizar Stepper UI
+      document.querySelectorAll('.step-item').forEach((item, idx) => {
+        const stepNum = idx + 1;
+        item.classList.remove('active', 'completed');
+        if (stepNum === numeroPaso) {
+          item.classList.add('active');
+        } else if (stepNum < numeroPaso) {
+          item.classList.add('completed');
+        }
+      });
+
       // Si es el paso 3, actualizar resumen
       if (numeroPaso === 3) {
         document.getElementById('res-remitente').innerText = document.getElementById('campo-remitente').value || 'N/A';
@@ -325,27 +336,54 @@
   }
 
   function showToast(title, message, type = 'info') {
-    // Implementación simple de alert/toast
-    // En un entorno premium usaríamos SweetAlert2 o un Toast de Bootstrap
-    console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
     const toastContainer = document.getElementById('toast-container');
     const id = 'toast-' + Date.now();
     
+    // Mapeo de colores Apple
+    const colors = {
+      'success': '#34c759',
+      'danger': '#ff3b30',
+      'warning': '#ff9500',
+      'info': '#007aff'
+    };
+    
+    const color = colors[type] || colors.info;
+    
     const html = `
-      <div id="${id}" class="toast show align-items-center text-white bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-          <div class="toast-body">
-            <strong>${title}</strong>: ${message}
+      <div id="${id}" class="mac-card mb-3 shadow-lg" style="width: 320px; border-left: 4px solid ${color}; animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="p-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="fw-bold small" style="color: ${color}">${title.toUpperCase()}</span>
+            <button type="button" class="btn-close small" style="font-size: 0.7rem" onclick="document.getElementById('${id}').remove()"></button>
           </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" onclick="document.getElementById('${id}').remove()"></button>
+          <div class="text-secondary small">${message}</div>
         </div>
       </div>
     `;
     
     toastContainer.insertAdjacentHTML('beforeend', html);
+    
+    // Add custom animation style if not exists
+    if (!document.getElementById('toast-animation')) {
+      const style = document.createElement('style');
+      style.id = 'toast-animation';
+      style.textContent = `
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     setTimeout(() => {
       const el = document.getElementById(id);
-      if (el) el.remove();
+      if (el) {
+        el.style.transform = 'translateX(100%)';
+        el.style.opacity = '0';
+        el.style.transition = 'all 0.4s ease';
+        setTimeout(() => el.remove(), 400);
+      }
     }, 5000);
   }
 </script>
