@@ -230,27 +230,27 @@ function _conReintentos(fn, label) {
 }
 
 /**
- * Log centralizado y estructurado (Google Cloud Logging compatible).
+ * Logging estructurado JSON nativo para Stackdriver (Google Cloud).
  * @param {string} level Nivel del log (INFO, WARN, ERROR).
- * @param {string} label Contexto o etiqueta.
+ * @param {string} context Contexto o etiqueta.
  * @param {string} message Mensaje descriptivo.
- * @param {Object} details Detalles adicionales del error o estado.
+ * @param {Object} extra Detalles adicionales (opcional).
  */
-function _log(level, label, message, details = {}) {
-  const logEntry = {
-    timestamp: new Date().toISOString(),
+function _log(level, context, message, extra) {
+  const entry = {
     level: level,
-    context: label,
+    context: context,
     message: message,
-    ...details
+    timestamp: new Date().toISOString()
   };
-  
-  const output = JSON.stringify(logEntry);
-  
-  switch(level.toUpperCase()) {
-    case "ERROR": console.error(output); break;
-    case "WARN":  console.warn(output);  break;
-    default:      console.log(output);   break;
+  if (extra) entry.data = extra;
+
+  if (level === "ERROR") {
+    console.error(JSON.stringify(entry));
+  } else if (level === "WARN") {
+    console.warn(JSON.stringify(entry));
+  } else {
+    console.log(JSON.stringify(entry));
   }
 }
 
