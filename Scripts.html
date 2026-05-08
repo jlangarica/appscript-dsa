@@ -482,6 +482,11 @@
         clearTimeout(timeoutId);
         if (res && res.success) {
           showToast('Registrado', res.message, 'success');
+
+          // Tarea #5: Disparar notificación en background (no bloquea UI)
+          if (res.dispararNotificacion) {
+            google.script.run._notificarUrgencia(res.folio, data);
+          }
           
           // Generar Acuse de Recibo Institucional (en lugar de resetear e ir a inicio)
           const paso3 = document.getElementById('paso-3');

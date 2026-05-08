@@ -197,8 +197,17 @@ function llamarGeminiMultimodal(base64Data) {
     throw new Error("El modelo no generó una respuesta. Verifica cuotas y formato del PDF.");
   }
 
-  const jsonString = result.candidates[0].content.parts[0].text;
-  return JSON.parse(jsonString);
+  let jsonString = result.candidates[0].content.parts[0].text;
+  
+  // Sanitización estricta (Regla #4: Robustez)
+  jsonString = jsonString.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+  
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    _log("ERROR", "llamarGeminiMultimodal", "Fallo al parsear JSON sanitizado", { raw: jsonString });
+    throw new Error("Respuesta del motor de IA no tiene formato JSON válido.");
+  }
 }
 
 // ===================================================================
@@ -213,83 +222,68 @@ function llamarGeminiMultimodal(base64Data) {
  * @return {Object} Status de la operación y folio generado.
  */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
-  // 0. Validación de Integridad (Seguridad: Regla #5)
+  // 0. Validación de Integridad
   if (!datosFinales || !datosFinales.titular || !datosFinales.oficio) {
     return { success: false, message: "Payload inválido. Faltan datos obligatorios (titular/oficio)." };
   }
 
   const cache = CacheService.getScriptCache();
   
-  // 0.1 Idempotencia: Evitar duplicados por reintentos de red
+  // 0.1 Idempotencia
   if (datosFinales.uploadId) {
     const cachedStatus = cache.get(`status_${datosFinales.uploadId}`);
-    if (cachedStatus) {
-      console.log(`Petición duplicada detectada para ID: ${datosFinales.uploadId}`);
-      return JSON.parse(cachedStatus);
-    }
+    if (cachedStatus) return JSON.parse(cachedStatus);
   }
 
-  const lock = LockService.getScriptLock();
   try {
-    // Bloqueo atómico por 10 segundos para evitar colisiones
-    lock.waitLock(10000);
-
-    // 1. Almacenamiento en Google Drive (Organización Dinámica: Año/Mes/Día)
-    if (!CONFIG.FOLDER_ID_OFICIOS) throw new Error("FOLDER_ID_OFICIOS no está configurado en las Propiedades del Script.");
-    
-    const rootFolder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
-    const now = new Date();
-    
-    const yearFolder = _getOrCreateFolder(rootFolder, String(now.getFullYear()));
-    const monthFolder = _getOrCreateFolder(yearFolder, String(now.getMonth() + 1).padStart(2, '0'));
-    const dayFolder = _getOrCreateFolder(monthFolder, String(now.getDate()).padStart(2, '0'));
-
+    // 1. ALMACENAMIENTO DRIVE (FUERA DEL LOCK - Tarea #1)
+    // Las operaciones de Drive son lentas, mejor hacerlas antes de bloquear el Sheet
+    const dayFolder = obtenerCarpetaDelDia();
     const decodedData = Utilities.base64Decode(base64Data);
     const blob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
     const file = dayFolder.createFile(blob);
     const fileUrl = file.getUrl();
 
-    // 2. Indexación en Google Sheets (Libro de Gobierno)
-    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no está configurado en las Propiedades del Script.");
-    
-    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-    let sheet = ss.getSheetByName("Recibidos");
-    if (!sheet) {
-      sheet = ss.insertSheet("Recibidos");
-      sheet.appendRow(["FECHA", "TITULAR", "ÁREA", "OFICIO", "ASUNTO", "TIPO", "PRIORIDAD", "RESPUESTA", "ESTATUS", "URL", "AUDITORÍA"]);
+    // 2. INDEXACIÓN EN SHEETS (CON LOCK - Tarea #1)
+    const lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(10000); // Bloqueo corto solo para escritura en Sheet
+
+      if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no configurado.");
+      const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+      let sheet = ss.getSheetByName("Recibidos");
+      
+      const nuevaFila = [
+        new Date(),
+        datosFinales.titular,
+        datosFinales.area,
+        datosFinales.oficio,
+        datosFinales.asunto,
+        datosFinales.tipo_doc,
+        datosFinales.urgencia,
+        datosFinales.requiere_respuesta ? "SÍ" : "NO",
+        "Recibido",
+        fileUrl,
+        Session.getActiveUser().getEmail()
+      ];
+      
+      sheet.appendRow(nuevaFila);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
     }
 
-    const nuevaFila = [
-      new Date(), // A: Fecha de recepción
-      datosFinales.titular, // B: Titular
-      datosFinales.area,    // C: Área
-      datosFinales.oficio,  // D: Oficio
-      datosFinales.asunto,  // E: Asunto
-      datosFinales.tipo_doc, // F: Tipo de Documento
-      datosFinales.urgencia, // G: Prioridad
-      datosFinales.requiere_respuesta ? "SÍ" : "NO", // H: Requiere Respuesta
-      "Recibido", // I: Estatus
-      fileUrl,    // J: Enlace Drive
-      Session.getActiveUser().getEmail() // K: Auditoría
-    ];
-    
-    sheet.appendRow(nuevaFila);
-    SpreadsheetApp.flush();
-    invalidarCaches(); // Invalida el caché para reflejar el nuevo registro
-
-    // 3. Flujo de Trabajo Automático: Notificación de Urgencia
+    invalidarCaches();
     const folioGenerado = "FOL-" + Date.now().toString().slice(-4);
-    if (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica") {
-      _notificarUrgencia(folioGenerado, datosFinales);
-    }
 
     const response = { 
       success: true, 
-      message: "Oficio registrado correctamente en la Oficialía.",
-      folio: folioGenerado
+      message: "Oficio registrado correctamente.",
+      folio: folioGenerado,
+      // Delegar notificación al frontend para no bloquear (Tarea #5)
+      dispararNotificacion: (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica")
     };
 
-    // Guardar resultado en caché para idempotencia (5 minutos)
     if (datosFinales.uploadId) {
       cache.put(`status_${datosFinales.uploadId}`, JSON.stringify(response), 300);
     }
@@ -298,8 +292,6 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   } catch (error) {
     console.error("Error al registrar:", error.toString());
     return { success: false, message: "Error al registrar: " + error.toString() };
-  } finally {
-    lock.releaseLock();
   }
 }
 
@@ -308,12 +300,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
  * @return {Object} Lista de registros formateada.
  */
 function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
-  const cache = CacheService.getScriptCache();
   const cacheKey = `${CACHE_KEYS.BIBLIOTECA}_${offset}_${limit}_${filtros ? Utilities.base64Encode(JSON.stringify(filtros)) : 'none'}`;
-  const cached = cache.get(cacheKey);
+  const cached = _getCacheChunked(cacheKey);
   
   if (cached) {
-    console.log(`Sirviendo página ${offset} con filtros desde caché.`);
+    console.log(`Sirviendo página ${offset} desde caché fragmentado.`);
     return JSON.parse(cached);
   }
 
@@ -379,10 +370,8 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
 
     const result = { success: true, data: registros, hasMore: hasMore };
 
-    // Cache por bloque y filtros
-    try {
-      cache.put(cacheKey, JSON.stringify(result), 1800);
-    } catch(e) {}
+    // Cache fragmentado para evitar límite de 100KB (Tarea #2)
+    _putCacheChunked(cacheKey, JSON.stringify(result), 1800);
 
     return result;
   } catch (error) {
@@ -669,15 +658,81 @@ function _log(level, context, message, extra) {
 }
 
 /**
- * Obtiene o crea una subcarpeta en Drive dinámicamente.
- * @param {GoogleAppsScript.Drive.Folder} parent Carpeta contenedora.
- * @param {string} name Nombre de la subcarpeta.
- * @return {GoogleAppsScript.Drive.Folder} La carpeta encontrada o creada.
+ * Obtiene la carpeta del día actual usando caché de ScriptProperties (Tarea #3).
+ * Reduce la latencia de Drive de segundos a milisegundos.
  */
+function obtenerCarpetaDelDia() {
+  const hoyStr = new Date().toISOString().split('T')[0];
+  const props = PropertiesService.getScriptProperties();
+  const idCarpetaDia = props.getProperty('FOLDER_DIA_' + hoyStr);
+
+  if (idCarpetaDia) {
+    try {
+      return DriveApp.getFolderById(idCarpetaDia);
+    } catch (e) {
+      console.warn("Folder ID en caché inválido, buscando nuevamente...");
+    }
+  }
+
+  // Si no está en caché o falló, buscar/crear
+  if (!CONFIG.FOLDER_ID_OFICIOS) throw new Error("FOLDER_ID_OFICIOS no configurado.");
+  const rootFolder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
+  const now = new Date();
+  
+  const yearFolder = _getOrCreateFolder(rootFolder, String(now.getFullYear()));
+  const monthFolder = _getOrCreateFolder(yearFolder, String(now.getMonth() + 1).padStart(2, '0'));
+  const dayFolder = _getOrCreateFolder(monthFolder, String(now.getDate()).padStart(2, '0'));
+
+  // Cachear para el resto de peticiones del día
+  props.setProperty('FOLDER_DIA_' + hoyStr, dayFolder.getId());
+  return dayFolder;
+}
+
 function _getOrCreateFolder(parent, name) {
   const folders = parent.getFoldersByName(name);
   if (folders.hasNext()) return folders.next();
   return parent.createFolder(name);
+}
+
+/**
+ * SISTEMA DE CACHÉ FRAGMENTADO (Tarea #2)
+ * Permite guardar objetos > 100KB dividiéndolos en trozos.
+ */
+function _putCacheChunked(key, value, expiration) {
+  const cache = CacheService.getScriptCache();
+  const chunkSize = 90000; // 90KB por seguridad
+  const chunks = [];
+  
+  for (let i = 0; i < value.length; i += chunkSize) {
+    chunks.push(value.substring(i, i + chunkSize));
+  }
+  
+  const chunkMap = {};
+  chunks.forEach((chunk, index) => {
+    chunkMap[`${key}_chunk_${index}`] = chunk;
+  });
+  chunkMap[`${key}_total`] = String(chunks.length);
+  
+  cache.putAll(chunkMap, expiration);
+}
+
+function _getCacheChunked(key) {
+  const cache = CacheService.getScriptCache();
+  const totalChunksStr = cache.get(`${key}_total`);
+  if (!totalChunksStr) return null;
+  
+  const totalChunks = parseInt(totalChunksStr);
+  const keys = Array.from({length: totalChunks}, (_, i) => `${key}_chunk_${i}`);
+  const results = cache.getAll(keys);
+  
+  let value = "";
+  for (let i = 0; i < totalChunks; i++) {
+    const chunk = results[`${key}_chunk_${i}`];
+    if (!chunk) return null; // Si falta un trozo, el caché está corrupto
+    value += chunk;
+  }
+  
+  return value;
 }
 
 /**
@@ -695,7 +750,7 @@ function _notificarUrgencia(folio, datos) {
         <p style="color: #4a5568;">Se ha registrado un nuevo documento que requiere atención inmediata:</p>
         <table style="width:100%; border-collapse: collapse; text-align: left; margin-top: 15px;">
           <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7; width: 30%;">Folio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${folio}</td></tr>
-          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Remitente:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.remitente}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Remitente:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.titular}</td></tr>
           <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Oficio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.oficio}</td></tr>
           <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Asunto:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.asunto}</td></tr>
         </table>
