@@ -18,10 +18,27 @@ const CONFIG = {
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
   GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite",
   
-  // IDs de Generación Documental (Regla #5: PropertiesService recomendado, pero hardcoded por petición)
-  TEMPLATE_DOC_ID: "1iu5gIOnQJku_5JkwZlaWfMtjtkq3YlfOBrqUzc4vrec",
-  FOLDER_GENERADOS_ID: "1g4E4LR9xIYsKtL-O68jTWFVQDfMAIRTc"
+  // IDs de Generación Documental (Regla #5: PropertiesService)
+  TEMPLATE_DOC_ID: getProp("TEMPLATE_DOC_ID") || "1iu5gIOnQJku_5JkwZlaWfMtjtkq3YlfOBrqUzc4vrec",
+  FOLDER_GENERADOS_ID: getProp("FOLDER_GENERADOS_ID") || "1g4E4LR9xIYsKtL-O68jTWFVQDfMAIRTc"
 };
+
+// ===================================================================
+// 1.1 SISTEMA DE CACHÉ (Regla #3: Rendimiento Avanzado)
+// ===================================================================
+const CACHE_KEYS = {
+  BIBLIOTECA: "dsa_biblioteca_data",
+  ESTADISTICAS: "dsa_stats_data"
+};
+
+/**
+ * Limpia el caché para forzar recarga en la siguiente consulta.
+ */
+function invalidarCaches() {
+  const cache = CacheService.getScriptCache();
+  cache.removeAll([CACHE_KEYS.BIBLIOTECA, CACHE_KEYS.ESTADISTICAS]);
+  console.log("Cachés invalidados.");
+}
 
 /**
  * Función de diagnóstico para el desarrollador.
@@ -258,6 +275,15 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
  * @return {Object} Lista de registros formateada.
  */
 function obtenerRegistros() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CACHE_KEYS.BIBLIOTECA);
+  
+  if (cached) {
+    console.log("Sirviendo biblioteca desde caché.");
+    return { success: true, data: JSON.parse(cached) };
+  }
+
+  console.log("Caché vacío. Leyendo desde Spreadsheet...");
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
@@ -293,7 +319,13 @@ function obtenerRegistros() {
       };
     });
     
-    console.log(`Biblioteca: ${registros.length} registros listos.`);
+    // Guardar en caché por 30 minutos (1800 seg)
+    try {
+      cache.put(CACHE_KEYS.BIBLIOTECA, JSON.stringify(registros), 1800);
+    } catch(e) {
+      console.warn("No se pudo guardar en caché (posiblemente excede 100KB):", e.toString());
+    }
+
     return { success: true, data: registros };
   } catch (error) {
     console.error("Error en obtenerRegistros:", error.toString());
@@ -393,6 +425,7 @@ function registrarEnGenerados(datos, docUrl) {
       docUrl
     ]);
     SpreadsheetApp.flush(); // Forzar escritura inmediata
+    invalidarCaches(); // Reflejar en estadísticas e inicio
     console.log("Fila añadida a Generados.");
   } catch (e) {
     console.error("Error detallado en registrarEnGenerados:", e.toString());
@@ -463,7 +496,13 @@ function _conReintentos(fn, label) {
  * @return {Object} Estadísticas para el dashboard.
  */
 function obtenerEstadisticas() {
-  console.log("Iniciando obtenerEstadisticas...");
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CACHE_KEYS.ESTADISTICAS);
+  
+  if (cached) {
+    return { success: true, data: JSON.parse(cached) };
+  }
+
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) {
       console.warn("ID de Hoja no configurado.");
@@ -479,7 +518,6 @@ function obtenerEstadisticas() {
       };
     }
     const data = sheet.getDataRange().getValues(); 
-    console.log(`Datos obtenidos: ${data.length} filas.`);
 
     if (data.length <= 1) {
       return { 
@@ -508,7 +546,7 @@ function obtenerEstadisticas() {
     const recientes = rows.slice(-5).reverse().map(row => {
       let fechaStr = "N/A";
       try {
-        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : row[0].toString();
+        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
       } catch(e) {}
 
       return {
@@ -520,18 +558,20 @@ function obtenerEstadisticas() {
       };
     });
 
-    const result = {
-      success: true,
-      data: { 
-        total, 
-        pendientes, 
-        urgentes, 
-        registradosHoy,
-        recientes
-      }
+    const resultData = { 
+      total, 
+      pendientes, 
+      urgentes, 
+      registradosHoy,
+      recientes
     };
-    console.log("Estadísticas calculadas con éxito.");
-    return result;
+
+    cache.put(CACHE_KEYS.ESTADISTICAS, JSON.stringify(resultData), 600); // 10 min de caché para métricas
+
+    return {
+      success: true,
+      data: resultData
+    };
   } catch (error) {
     console.error("Error en obtenerEstadisticas:", error.toString());
     return { success: false, message: "Error al calcular métricas: " + error.toString() };
