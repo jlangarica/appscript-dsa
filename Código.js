@@ -44,6 +44,36 @@ const CADIDO_VIGENCIAS = {
   "99.9 - Otro / Sin Clasificar": 1
 };
 
+// ===================================================================
+// 1.3 CONSTANTES Y REGLAS DE NEGOCIO (Enterprise Pattern)
+// ===================================================================
+const APP_CONSTANTS = {
+  RANGOS: {
+    RECIBIDOS: 'Recibidos!A2:M',
+    RECIBIDOS_HEADERS: 'Recibidos!1:1',
+    HOJA_RECIBIDOS: "Recibidos",
+    COL_ESTATUS_RECIBIDOS: 'Recibidos!K'
+  },
+  LIMITES: {
+    LOCK_TIMEOUT_MS: 10000,
+    CACHE_EXPIRATION_SEC: 1800,
+    CHUNK_SIZE_BYTES: 90000,
+    RATE_LIMIT_SEC: 5,
+    PAGINACION_DEFAULT: 50
+  },
+  ESTATUS: {
+    ACTIVO: "Activo en Trámite",
+    PENDIENTE: "Pendiente",
+    VENCIDO: "Vencido - Transferir",
+    RECIBIDO: "Recibido"
+  },
+  COLORES: {
+    HEADER_BG: "#1a365d",
+    HEADER_TEXT: "#ffffff"
+  }
+};
+Object.freeze(APP_CONSTANTS);
+
 /**
  * Limpia el caché para forzar recarga en la siguiente consulta.
  */
@@ -282,18 +312,17 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     // 2. INDEXACIÓN EN SHEETS (CON LOCK)
     const lock = LockService.getScriptLock();
     try {
-      lock.waitLock(10000); 
+      lock.waitLock(APP_CONSTANTS.LIMITES.LOCK_TIMEOUT_MS); 
 
       if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no configurado.");
       const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
-      let sheet = ss.getSheetByName("Recibidos");
+      let sheet = ss.getSheetByName(APP_CONSTANTS.RANGOS.HOJA_RECIBIDOS);
       
-      // Inicializar cabeceras si es necesario (Tarea #1 Archivística)
       if (!sheet) {
-        sheet = ss.insertSheet("Recibidos");
+        sheet = ss.insertSheet(APP_CONSTANTS.RANGOS.HOJA_RECIBIDOS);
         const headers = ["FECHA", "TITULAR", "SECCIÓN (ÁREA)", "OFICIO", "ASUNTO", "SERIE DOCUMENTAL (CGCA)", "AÑOS RETENCIÓN", "FECHA TRANSFERENCIA", "PRIORIDAD", "RESPUESTA", "ESTATUS", "URL", "AUDITORÍA"];
         sheet.appendRow(headers);
-        sheet.getRange("1:1").setBackground("#1a365d").setFontColor("#ffffff").setFontWeight("bold");
+        sheet.getRange(APP_CONSTANTS.RANGOS.RECIBIDOS_HEADERS).setBackground(APP_CONSTANTS.COLORES.HEADER_BG).setFontColor(APP_CONSTANTS.COLORES.HEADER_TEXT).setFontWeight("bold");
       }
 
       // Cálculo de CADIDO (Tarea #2 Archivística)
@@ -312,7 +341,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
         fechaTransferencia,
         datosFinales.urgencia,
         datosFinales.requiere_respuesta ? "SÍ" : "NO",
-        "Activo en Trámite", // Estatus Archivístico inicial
+        APP_CONSTANTS.ESTATUS.ACTIVO, 
         fileUrl,
         Session.getActiveUser().getEmail()
       ];
@@ -615,7 +644,7 @@ function obtenerEstadisticas() {
     if (!CONFIG.SHEET_ID_GOBIERNO) return { success: false, message: "ID no configurado." };
     
     // Sheets API para velocidad (Tarea #4)
-    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:M');
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, APP_CONSTANTS.RANGOS.RECIBIDOS);
     const rows = response.values;
 
     if (!rows || rows.length === 0) {
@@ -635,7 +664,7 @@ function obtenerEstadisticas() {
       const estatus = row[10]; // Columna K
       const fecha = new Date(row[0]); 
 
-      if (estatus === "Pendiente" || estatus === "Activo en Trámite") pendientes++;
+      if (estatus === APP_CONSTANTS.ESTATUS.PENDIENTE || estatus === APP_CONSTANTS.ESTATUS.ACTIVO) pendientes++;
       if (urgencia === "Alta" || urgencia === "Crítica") urgentes++;
       if (fecha >= hoy) registradosHoy++;
     });
@@ -647,7 +676,7 @@ function obtenerEstadisticas() {
         titular: String(row[1] || "N/A"),
         asunto: String(row[4] || "Sin asunto"),
         fecha: String(row[0] || "N/A"),
-        estatus: String(row[10] || "Activo")
+        estatus: String(row[10] || APP_CONSTANTS.ESTATUS.ACTIVO)
       };
     });
 
@@ -704,7 +733,7 @@ function auditarPlazosDeConservacion() {
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) return;
     
-    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:M');
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, APP_CONSTANTS.RANGOS.RECIBIDOS);
     const rows = response.values;
     if (!rows || rows.length === 0) return;
 
@@ -715,7 +744,7 @@ function auditarPlazosDeConservacion() {
       const fechaTransferencia = new Date(row[7]); // Columna H
       const estatus = row[10]; // Columna K
 
-      if (estatus === "Activo en Trámite" && hoy >= fechaTransferencia) {
+      if (estatus === APP_CONSTANTS.ESTATUS.ACTIVO && hoy >= fechaTransferencia) {
         expirados.push({
           oficio: row[3],
           serie: row[5],
@@ -729,7 +758,7 @@ function auditarPlazosDeConservacion() {
       // Actualizar estatus en batch para eficiencia
       expirados.forEach(e => {
         const range = `Recibidos!K${e.fila}`;
-        Sheets.Spreadsheets.Values.update({ values: [["Vencido - Transferir"]] }, CONFIG.SHEET_ID_GOBIERNO, range, { valueInputOption: "RAW" });
+        Sheets.Spreadsheets.Values.update({ values: [[APP_CONSTANTS.ESTATUS.VENCIDO]] }, CONFIG.SHEET_ID_GOBIERNO, range, { valueInputOption: "RAW" });
       });
 
       // Notificar por Gmail
