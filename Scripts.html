@@ -477,7 +477,22 @@
     if (!append) {
       AppState.bibliotecaOffset = 0;
       AppState.bibliotecaData = [];
-      toggleLoading(true, "Cargando biblioteca...");
+      
+      // Mostrar esqueletos mientras carga
+      const tbody = document.getElementById('tabla-biblioteca-body');
+      if (tbody) {
+        tbody.innerHTML = Array(6).fill(`
+          <tr>
+            <td class="ps-4"><div class="skeleton-box" style="width: 70px;"></div></td>
+            <td><div class="cell-group"><div class="skeleton-box" style="width: 140px;"></div><div class="skeleton-box" style="width: 100px;"></div></div></td>
+            <td><div class="cell-group"><div class="skeleton-box" style="width: 100px;"></div><div class="skeleton-box" style="width: 60px;"></div></div></td>
+            <td><div class="skeleton-box" style="width: 180px;"></div></td>
+            <td><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
+            <td class="text-center"><div class="skeleton-box" style="width: 24px;"></div></td>
+            <td class="text-center"><div class="skeleton-box" style="width: 24px;"></div></td>
+          </tr>
+        `).join('');
+      }
     }
 
     google.script.run
@@ -670,10 +685,8 @@
     setTimeout(() => {
       const el = document.getElementById(id);
       if (el) {
-        el.style.transform = 'translateX(100%)';
-        el.style.opacity = '0';
-        el.style.transition = 'all 0.4s ease';
-        setTimeout(() => el.remove(), 400);
+        el.classList.add('toast-exit');
+        setTimeout(() => el.remove(), 300);
       }
     }, 5000);
   }
