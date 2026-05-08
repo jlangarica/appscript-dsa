@@ -11,6 +11,8 @@
     extractedData: null,
     bibliotecaData: [],
     bibliotecaOffset: 0,
+    bibliotecaFiltros: null,
+    uploadId: null,
     oficioParaRespuesta: null,
     isProcessing: false,
     isDark: localStorage.getItem('dsa-theme') === 'dark'
@@ -68,7 +70,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     cambiarVista('v-dashboard');
     initDragAndDrop();
-    initSearch();
     
     // Aplicar tema inicial
     if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
@@ -91,18 +92,6 @@
     });
   });
 
-  function initSearch() {
-    const filtro = document.getElementById('filtro-texto');
-    if (!filtro) return;
-    
-    filtro.addEventListener('input', _debounce(() => {
-      const query = filtro.value.trim();
-      console.log('Buscando:', query);
-      // Simulación de búsqueda - en producción llamaría a google.script.run
-      const emptySearch = document.getElementById('empty-search');
-      if (emptySearch) emptySearch.style.display = query ? 'none' : 'block';
-    }, 400));
-  }
 
   // --- ENRUTADOR ---
   function cambiarVista(idVista) {
@@ -182,6 +171,7 @@
     }
 
     AppState.pdfFile = file;
+    AppState.uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     // Render PDF localmente
     const objectUrl = URL.createObjectURL(file);
@@ -294,7 +284,8 @@
       tipo_doc: document.getElementById('campo-tipo-doc').value,
       urgencia: document.getElementById('campo-urgencia').value,
       requiere_respuesta: document.getElementById('campo-requiere-respuesta').checked,
-      fileName: AppState.pdfFile.name
+      fileName: AppState.pdfFile.name,
+      uploadId: AppState.uploadId
     };
 
     toggleLoading(true, "Registrando en la Oficialía...");
@@ -310,6 +301,7 @@
         clearTimeout(timeoutId);
         if (res && res.success) {
           showToast('Registrado', res.message, 'success');
+          AppState.uploadId = null; // Limpiar ID tras éxito
           resetForm();
           cambiarVista('v-dashboard');
         } else {
@@ -505,7 +497,7 @@
         console.error("Error de red/GAS en cargarBiblioteca:", err);
         showToast('Error de Servidor', err.message, 'danger');
       })
-      .obtenerRegistros(AppState.bibliotecaOffset, 50);
+      .obtenerRegistros(AppState.bibliotecaOffset, 50, AppState.bibliotecaFiltros);
   }
 
   function cargarSiguientePagina() {
@@ -525,31 +517,16 @@
   }
 
   function aplicarFiltrosBiblioteca() {
-    const texto = document.getElementById('filtro-texto').value.toLowerCase();
-    const area = document.getElementById('filtro-area').value;
-    const tipo = document.getElementById('filtro-tipo').value;
-    const prioridad = document.getElementById('filtro-prioridad').value;
-    const respuesta = document.getElementById('filtro-respuesta').value;
+    const filtrados = {
+      texto: document.getElementById('filtro-texto').value,
+      area: document.getElementById('filtro-area').value,
+      tipo: document.getElementById('filtro-tipo').value,
+      prioridad: document.getElementById('filtro-prioridad').value,
+      respuesta: document.getElementById('filtro-respuesta').value
+    };
 
-    const filtrados = AppState.bibliotecaData.filter(reg => {
-      const matchTexto = !texto || 
-        reg.titular.toLowerCase().includes(texto) || 
-        reg.asunto.toLowerCase().includes(texto) || 
-        reg.oficio.toLowerCase().includes(texto) ||
-        reg.area.toLowerCase().includes(texto);
-      
-      const matchArea = !area || reg.area === area;
-      const matchTipo = !tipo || reg.tipo_doc === tipo;
-      const matchPrioridad = !prioridad || reg.urgencia === prioridad;
-      const matchRespuesta = !respuesta || reg.respuesta === respuesta;
-
-      return matchTexto && matchArea && matchTipo && matchPrioridad && matchRespuesta;
-    });
-
-    renderizarTablaBiblioteca(filtrados);
-    
-    const empty = document.getElementById('empty-search');
-    if (empty) empty.classList.toggle('d-none', filtrados.length > 0);
+    AppState.bibliotecaFiltros = filtrados;
+    cargarBiblioteca(false);
   }
 
   function renderizarTablaBiblioteca(data) {
