@@ -15,6 +15,7 @@
     uploadId: null,
     oficioParaRespuesta: null,
     isProcessing: false,
+    isSidebarCollapsed: localStorage.getItem('dsa-sidebar') === 'true',
     isDark: localStorage.getItem('dsa-theme') === 'dark'
   }, {
     set(target, prop, value) {
@@ -33,6 +34,29 @@
     if (prop === 'isDark') {
       document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
       localStorage.setItem('dsa-theme', value ? 'dark' : 'light');
+      
+      // Animar icono
+      const icon = document.getElementById('theme-icon');
+      if (icon) {
+        if (value) {
+          icon.classList.replace('bi-moon-stars', 'bi-sun');
+          icon.style.transform = 'rotate(180deg)';
+        } else {
+          icon.classList.replace('bi-sun', 'bi-moon-stars');
+          icon.style.transform = 'rotate(0deg)';
+        }
+      }
+    }
+
+    if (prop === 'isSidebarCollapsed') {
+      const sidebar = document.querySelector('.mac-sidebar');
+      const icon = document.getElementById('sidebar-icon');
+      const label = document.querySelector('[onclick="toggleSidebar()"] span');
+      
+      if (sidebar) sidebar.classList.toggle('collapsed', value);
+      if (icon) icon.classList.toggle('bi-layout-sidebar-reverse', value);
+      if (label) label.innerText = value ? 'Expandir' : 'Contraer';
+      localStorage.setItem('dsa-sidebar', value);
     }
     
     if (prop === 'isProcessing') {
@@ -90,6 +114,33 @@
         this.style.height = (this.scrollHeight) + 'px';
       });
     });
+
+    // Atajos de Teclado
+    document.addEventListener('keydown', (e) => {
+      // Escape cierra el panel lateral
+      if (e.key === 'Escape') {
+        const panel = document.getElementById('panel-respuesta');
+        if (panel && !panel.classList.contains('d-none')) cerrarPanelRespuesta();
+      }
+      // Cmd+K o Ctrl+K enfoca el buscador
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        cambiarVista('v-archivo');
+        setTimeout(() => {
+          const searchInput = document.getElementById('filtro-texto');
+          if (searchInput) searchInput.focus();
+        }, 150);
+      }
+    });
+
+    // Restaurar sidebar
+    if (AppState.isSidebarCollapsed) {
+      document.querySelector('.mac-sidebar')?.classList.add('collapsed');
+      const icon = document.getElementById('sidebar-icon');
+      if (icon) icon.classList.add('bi-layout-sidebar-reverse');
+      const label = document.querySelector('[onclick="toggleSidebar()"] span');
+      if (label) label.innerText = 'Expandir';
+    }
   });
 
 
@@ -299,7 +350,10 @@
       uploadId: AppState.uploadId
     };
 
-    toggleLoading(true, "Registrando en la Oficialía...");
+    const btn = document.querySelector('button[onclick="registrarOficioFinal()"]');
+    if (btn) btn.classList.add('loading');
+    
+    toggleLoading(false); // No bloquear pantalla para este paso
 
     // Temporizador de seguridad (60 segundos)
     const timeoutId = setTimeout(() => {
@@ -309,6 +363,7 @@
 
     google.script.run
       .withSuccessHandler(res => {
+        if (btn) btn.classList.remove('loading');
         clearTimeout(timeoutId);
         if (res && res.success) {
           showToast('Registrado', res.message, 'success');
@@ -322,6 +377,7 @@
         toggleLoading(false);
       })
       .withFailureHandler(err => {
+        if (btn) btn.classList.remove('loading');
         clearTimeout(timeoutId);
         showToast('Error', err.message, 'danger');
         toggleLoading(false);
@@ -436,10 +492,12 @@
       asistido: asistido
     };
 
-    toggleLoading(true, asistido ? "Generando redacción profesional..." : "Generando borrador...");
+    const btn = event.currentTarget; // Capturar botón presionado
+    if (btn) btn.classList.add('loading');
 
     google.script.run
       .withSuccessHandler(res => {
+        if (btn) btn.classList.remove('loading');
         console.log("Servidor respondió:", res);
         toggleLoading(false);
         try {
@@ -462,6 +520,7 @@
         }
       })
       .withFailureHandler(err => {
+        if (btn) btn.classList.remove('loading');
         toggleLoading(false);
         console.error("Fallo crítico en EjecutarGeneracion:", err);
         const msg = err ? err.message : "Error desconocido de red";
@@ -555,6 +614,15 @@
     cargarBiblioteca(false);
   }
 
+  function limpiarFiltrosYBuscar() {
+    document.getElementById('filtro-texto').value = '';
+    document.getElementById('filtro-area').value = '';
+    document.getElementById('filtro-tipo').value = '';
+    document.getElementById('filtro-prioridad').value = '';
+    document.getElementById('filtro-respuesta').value = '';
+    aplicarFiltrosBiblioteca();
+  }
+
   function renderizarTablaBiblioteca(data) {
     const tbody = document.getElementById('tabla-biblioteca-body');
     if (!tbody) return;
@@ -635,6 +703,10 @@
 
   function toggleTheme() {
     AppState.isDark = !AppState.isDark;
+  }
+
+  function toggleSidebar() {
+    AppState.isSidebarCollapsed = !AppState.isSidebarCollapsed;
   }
 
   function toggleLoading(show, message = "Procesando...", submessage = "") {
