@@ -263,6 +263,47 @@
   }
   [data-theme="dark"] .sticky-bottom { background-color: #1c1c1e !important; }
 
+  /* --- GLOBAL DROPZONE OVERLAY --- */
+  #global-dropzone {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(var(--bg-color-rgb), 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 6px dashed var(--system-blue);
+    margin: 20px;
+    border-radius: 30px;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  @keyframes floatIcon {
+    from { transform: translateY(0); }
+    to { transform: translateY(-20px); }
+  }
+
+  /* --- SEARCH HIGHLIGHT --- */
+  mark.mac-highlight {
+    background-color: rgba(255, 214, 10, 0.4);
+    color: inherit;
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  [data-theme="dark"] mark.mac-highlight { background-color: rgba(255, 214, 10, 0.3); color: #fff; }
+
+  /* --- DYNAMIC STICKY SHADOW --- */
+  .sticky-scrolled {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-bottom: 1px solid var(--separator) !important;
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(20px);
+  }
+
   .overflow-auto {
     scrollbar-width: thin;
     overflow-y: auto;
@@ -634,6 +675,44 @@
     flex-direction: column;
     align-items: center;
     gap: 1.5rem;
+  }
+
+  #biblio-detail {
+    resize: horizontal;
+    direction: rtl; /* Resize handle on left */
+    min-width: 320px;
+    max-width: 60vw;
+    overflow: auto;
+    border-left: 1px solid var(--separator);
+  }
+
+  #biblio-detail > div {
+    direction: ltr; /* Restore content direction */
+  }
+
+  #biblio-detail::-webkit-scrollbar:horizontal { height: 0; }
+
+  #global-dropzone {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  mark.mac-highlight {
+    background: rgba(255, 215, 0, 0.3);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  .sticky-scrolled {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--separator);
   }
 
   .mac-spinner {

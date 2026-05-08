@@ -141,6 +141,41 @@
       });
     });
 
+    // --- GLOBAL DROPZONE LOGIC ---
+    let dragTimer;
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.types.includes('Files')) {
+        document.getElementById('global-dropzone')?.classList.remove('d-none');
+        clearTimeout(dragTimer);
+      }
+    });
+    document.addEventListener('dragleave', () => {
+      dragTimer = setTimeout(() => document.getElementById('global-dropzone')?.classList.add('d-none'), 150);
+    });
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      document.getElementById('global-dropzone')?.classList.add('d-none');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') {
+        cambiarVista('v-registro');
+        handleFile(file);
+      }
+    });
+
+    // --- DYNAMIC STICKY SHADOWS ---
+    const containers = ['biblio-master', 'v-archivo'];
+    containers.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('scroll', () => {
+          const topBar = document.querySelector('.mac-topbar');
+          if (el.scrollTop > 10) topBar?.classList.add('sticky-scrolled');
+          else topBar?.classList.remove('sticky-scrolled');
+        });
+      }
+    });
+
     // Atajos de Teclado
     document.addEventListener('keydown', (e) => {
       // Escape cierra el panel lateral
@@ -553,8 +588,12 @@
     document.getElementById('det-tipo').innerText = reg.tipo_doc || "Informativo";
     document.getElementById('det-urgencia').innerText = reg.urgencia || "Normal";
     
-    // Visor PDF
+    // Visor PDF (con ocultación previa para evitar flash blanco)
     const viewer = document.getElementById('pdf-viewer-det');
+    const loader = document.getElementById('loader-pdf-det');
+    if (viewer) viewer.style.opacity = '0';
+    if (loader) loader.style.display = 'flex';
+
     if (reg.url) {
       viewer.src = reg.url.replace('/view', '/preview');
     } else {
@@ -847,13 +886,13 @@
           <td class="ps-4 small text-secondary" data-tooltip="${reg.fecha}">${fechaHumanizada}</td>
           <td>
             <div class="cell-group" data-tooltip="${_escaparHTML(reg.asunto)}">
-              <div class="fw-medium text-truncate" style="max-width: 150px;">${_escaparHTML(reg.titular)}</div>
-              <div class="small text-secondary text-truncate" style="max-width: 150px;">${_escaparHTML(reg.area)}</div>
+              <div class="fw-medium text-truncate" style="max-width: 150px;">${_resaltar(reg.titular)}</div>
+              <div class="small text-secondary text-truncate" style="max-width: 150px;">${_resaltar(reg.area)}</div>
             </div>
           </td>
           <td>
             <div class="cell-group">
-              <div class="small font-monospace">${_escaparHTML(reg.oficio)}</div>
+              <div class="small font-monospace">${_resaltar(reg.oficio)}</div>
               <div><span class="badge bg-light text-dark border" style="font-size: 0.6rem;">${reg.tipo_doc}</span></div>
             </div>
           </td>
@@ -904,6 +943,20 @@
   /**
    * Escapa HTML nativo para evitar XSS.
    */
+  function _resaltar(texto) {
+    if (!texto) return '';
+    const filtro = document.getElementById('filtro-texto')?.value?.trim();
+    if (!filtro) return _escaparHTML(texto);
+    
+    const escapedText = _escaparHTML(texto);
+    try {
+      const regex = new RegExp(`(${_escaparHTML(filtro)})`, 'gi');
+      return escapedText.replace(regex, '<mark class="mac-highlight">$1</mark>');
+    } catch(e) {
+      return escapedText;
+    }
+  }
+
   function _escaparHTML(str) {
     if (!str) return '';
     const div = document.createElement('div');
