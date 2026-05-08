@@ -846,13 +846,12 @@ function _getOrCreateFolder(parent, name) {
  * SISTEMA DE CACHÉ FRAGMENTADO (Tarea #2)
  * Permite guardar objetos > 100KB dividiéndolos en trozos.
  */
-function _putCacheChunked(key, value, expiration) {
+function _putCacheChunked(key, value, expiration = APP_CONSTANTS.LIMITES.CACHE_EXPIRATION_SEC) {
   const cache = CacheService.getScriptCache();
-  const chunkSize = 90000; // 90KB por seguridad
   const chunks = [];
   
-  for (let i = 0; i < value.length; i += chunkSize) {
-    chunks.push(value.substring(i, i + chunkSize));
+  for (let i = 0; i < value.length; i += APP_CONSTANTS.LIMITES.CHUNK_SIZE_BYTES) {
+    chunks.push(value.substring(i, i + APP_CONSTANTS.LIMITES.CHUNK_SIZE_BYTES));
   }
   
   const chunkMap = {};
