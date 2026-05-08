@@ -155,20 +155,28 @@ function llamarGeminiMultimodal(base64Data) {
   `;
 
   const payload = {
-    "contents": [{
-      "parts": [
-        { "text": systemPrompt },
-        { 
-          "inline_data": { 
-            "mime_type": "application/pdf", 
-            "data": base64Data 
-          } 
-        }
+    contents: [{
+      parts: [
+        { text: systemPrompt },
+        { inline_data: { mime_type: "application/pdf", data: base64Data } }
       ]
     }],
-    "generationConfig": {
-      "responseMimeType": "application/json",
-      "temperature": 0.1
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          titular: { type: "STRING" },
+          area: { type: "STRING" },
+          oficio: { type: "STRING" },
+          asunto: { type: "STRING" },
+          tipo_doc: { type: "STRING" },
+          urgencia: { type: "STRING", enum: ["Baja", "Normal", "Alta", "Crítica"] },
+          requiere_respuesta: { type: "BOOLEAN" }
+        },
+        required: ["titular", "area", "oficio", "asunto", "tipo_doc", "urgencia", "requiere_respuesta"]
+      }
     }
   };
 
@@ -228,6 +236,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     // 2. Indexación en Google Sheets (Libro de Gobierno)
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no está configurado en las Propiedades del Script.");
     
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
     let sheet = ss.getSheetByName("Recibidos");
     if (!sheet) {
       sheet = ss.insertSheet("Recibidos");
@@ -249,10 +258,12 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     ];
     
     sheet.appendRow(nuevaFila);
+    SpreadsheetApp.flush();
+    invalidarCaches(); // Invalida el caché para reflejar el nuevo registro
 
     // 3. Flujo de Trabajo Automático: Notificación de Urgencia
     const folioGenerado = "FOL-" + Date.now().toString().slice(-4);
-    if (datosFinales.urgencia === "Alta") {
+    if (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica") {
       _notificarUrgencia(folioGenerado, datosFinales);
     }
 
@@ -262,10 +273,9 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
       folio: folioGenerado
     };
   } catch (error) {
-    _log("ERROR", "registrarOficioFinalizado", "Error al persistir datos", { error: error.toString() });
+    console.error("Error al registrar:", error.toString());
     return { success: false, message: "Error al registrar: " + error.toString() };
   } finally {
-    // Siempre liberar el candado
     lock.releaseLock();
   }
 }
@@ -274,31 +284,38 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
  * Obtiene todos los registros de la Oficialía para la Biblioteca.
  * @return {Object} Lista de registros formateada.
  */
-function obtenerRegistros() {
+function obtenerRegistros(offset = 0, limit = 50) {
   const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_KEYS.BIBLIOTECA);
+  const cacheKey = `${CACHE_KEYS.BIBLIOTECA}_${offset}_${limit}`;
+  const cached = cache.get(cacheKey);
   
   if (cached) {
-    console.log("Sirviendo biblioteca desde caché.");
-    return { success: true, data: JSON.parse(cached) };
+    console.log(`Sirviendo página ${offset} desde caché.`);
+    return { success: true, data: JSON.parse(cached), hasMore: true };
   }
 
-  console.log("Caché vacío. Leyendo desde Spreadsheet...");
+  console.log(`Cargando página ${offset} desde Spreadsheet...`);
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
     const sheet = ss.getSheetByName("Recibidos");
-    if (!sheet) return { success: true, data: [] };
+    if (!sheet) return { success: true, data: [], hasMore: false };
     
-    const data = sheet.getDataRange().getValues();
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, data: [], hasMore: false };
+
+    // Paginación real: Leer solo el bloque necesario
+    // Las filas son 1-indexed. Saltamos el encabezado (1) y aplicamos offset.
+    const startRow = Math.max(2, lastRow - offset - limit + 1);
+    const numRows = Math.min(limit, lastRow - offset - 1);
     
-    if (data.length <= 1) return { success: true, data: [] };
+    if (numRows <= 0) return { success: true, data: [], hasMore: false };
+
+    const data = sheet.getRange(startRow, 1, numRows, 11).getValues();
+    const rows = data.reverse(); // Los más recientes primero del bloque
     
-    const headers = data[0];
-    const rows = data.slice(1).reverse(); // Los más recientes primero
-    
-    const registros = rows.map((row, index) => {
+    const registros = rows.map((row) => {
       let fechaStr = "N/A";
       try {
         fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
@@ -319,14 +336,14 @@ function obtenerRegistros() {
       };
     });
     
-    // Guardar en caché por 30 minutos (1800 seg)
-    try {
-      cache.put(CACHE_KEYS.BIBLIOTECA, JSON.stringify(registros), 1800);
-    } catch(e) {
-      console.warn("No se pudo guardar en caché (posiblemente excede 100KB):", e.toString());
-    }
+    const hasMore = (lastRow - offset - limit) > 1;
 
-    return { success: true, data: registros };
+    // Cache por bloque
+    try {
+      cache.put(cacheKey, JSON.stringify(registros), 1800);
+    } catch(e) {}
+
+    return { success: true, data: registros, hasMore: hasMore };
   } catch (error) {
     console.error("Error en obtenerRegistros:", error.toString());
     return { success: false, message: error.toString() };
@@ -477,18 +494,25 @@ function _conReintentos(fn, label) {
 
   for (let intento = 0; intento <= MAX_RETRIES; intento++) {
     try {
-      return fn(); // Intenta ejecutar la llamada
+      return fn(); 
     } catch (error) {
       lastError = error;
-      // Solo reintentamos si no es el último intento
+      const msg = error.toString().toLowerCase();
+      
+      // ERROR NO RECUPERABLE: Si es error de cliente (400), no reintentar
+      if (msg.includes("400") || msg.includes("bad request") || msg.includes("invalid argument") || msg.includes("limit exceeded")) {
+        console.error(`[${label}] Error no recuperable: ${msg}`);
+        throw error;
+      }
+
       if (intento < MAX_RETRIES) {
-        const delay = BASE_DELAY_MS * Math.pow(2, intento); // 2s, 4s...
-        _log("WARN", label, `Intento ${intento + 1} falló. Reintentando en ${delay}ms...`, { error: error.message });
+        const delay = BASE_DELAY_MS * Math.pow(2, intento);
+        console.warn(`[${label}] Intento ${intento + 1} falló. Reintentando en ${delay}ms...`);
         Utilities.sleep(delay);
       }
     }
   }
-  throw lastError; // Agotados los reintentos, lanzamos el error
+  throw lastError;
 }
 
 /**

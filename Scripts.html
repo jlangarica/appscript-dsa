@@ -10,6 +10,7 @@
     pasoActual: 1,
     extractedData: null,
     bibliotecaData: [],
+    bibliotecaOffset: 0,
     oficioParaRespuesta: null,
     isProcessing: false,
     isDark: localStorage.getItem('dsa-theme') === 'dark'
@@ -445,15 +446,31 @@
 
   // --- GESTOR DE BIBLIOTECA ---
 
-  function cargarBiblioteca() {
-    toggleLoading(true, "Cargando biblioteca...");
+  function cargarBiblioteca(append = false) {
+    if (!append) {
+      AppState.bibliotecaOffset = 0;
+      AppState.bibliotecaData = [];
+      toggleLoading(true, "Cargando biblioteca...");
+    }
+
     google.script.run
       .withSuccessHandler(res => {
         toggleLoading(false);
         if (res && res.success) {
-          AppState.bibliotecaData = res.data;
-          _poblarFiltroAreas(res.data);
-          renderizarTablaBiblioteca(res.data);
+          if (append) {
+            AppState.bibliotecaData = [...AppState.bibliotecaData, ...res.data];
+          } else {
+            AppState.bibliotecaData = res.data;
+          }
+          
+          _poblarFiltroAreas(AppState.bibliotecaData);
+          renderizarTablaBiblioteca(AppState.bibliotecaData);
+          
+          // Gestionar botón de cargar más
+          const btnLoadMore = document.getElementById('btn-cargar-mas');
+          if (btnLoadMore) {
+            btnLoadMore.classList.toggle('d-none', !res.hasMore);
+          }
         } else {
           const msg = res ? res.message : "Error al cargar los datos";
           showToast('Error', msg, 'danger');
@@ -464,7 +481,12 @@
         console.error("Error de red/GAS en cargarBiblioteca:", err);
         showToast('Error de Servidor', err.message, 'danger');
       })
-      .obtenerRegistros();
+      .obtenerRegistros(AppState.bibliotecaOffset, 50);
+  }
+
+  function cargarSiguientePagina() {
+    AppState.bibliotecaOffset += 50;
+    cargarBiblioteca(true);
   }
 
   function _poblarFiltroAreas(data) {
