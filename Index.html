@@ -409,10 +409,11 @@
               </tbody>
             </table>
           </div>
-          <div id="empty-search" class="text-center py-5 d-none">
-            <i class="bi bi-search text-secondary opacity-25" style="font-size: 3.5rem;"></i>
-            <h5 class="mt-3 fw-semibold">Sin resultados</h5>
-            <button class="apple-btn apple-btn-secondary mt-3" onclick="limpiarFiltrosYBuscar()">Limpiar</button>
+          <div id="empty-search" class="text-center py-5 d-none position-relative">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwznMpanZo8joZkePlBwsbRgQe82yuhR8Qvw&s" class="position-absolute top-50 start-50 translate-middle opacity-10" style="width: 250px; pointer-events: none; filter: grayscale(100%);" alt="Escudo DSA">
+            <i class="bi bi-folder2-open text-secondary position-relative z-1" style="font-size: 3.5rem; opacity: 0.5;"></i>
+            <h5 class="mt-3 fw-bold position-relative z-1 text-primary">Acervo al Corriente</h5>
+            <p class="text-secondary mb-4 position-relative z-1">No existen oficios que requieran atención bajo los filtros actuales.</p>
           </div>
           <div class="text-center py-4 d-none" id="btn-cargar-mas">
             <button class="apple-btn apple-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>

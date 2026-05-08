@@ -475,9 +475,46 @@
         clearTimeout(timeoutId);
         if (res && res.success) {
           showToast('Registrado', res.message, 'success');
+          
+          // Generar Acuse de Recibo Institucional (en lugar de resetear e ir a inicio)
+          const paso3 = document.getElementById('paso-3');
+          paso3.innerHTML = `
+            <div class="max-w-600 text-center animate-fade-in">
+              <div class="mb-4"><i class="bi bi-shield-check text-success" style="font-size: 5rem;"></i></div>
+              <h3 class="fw-bold">Oficio Ingresado Correctamente</h3>
+              <div class="mac-card p-4 mt-4 text-start shadow-lg" id="ticket-acuse">
+                <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
+                  <span class="text-secondary fw-bold small">DIVISIÓN DE SERVICIOS ADMINISTRATIVOS</span>
+                  <span class="fw-bold text-primary">${res.folio || 'FOL-' + Date.now()}</span>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-5 text-secondary small fw-medium">Fecha y Hora:</div>
+                  <div class="col-7 small">${new Date().toLocaleString()}</div>
+                  <div class="col-5 text-secondary small fw-medium">Remitente:</div>
+                  <div class="col-7 small fw-bold">${_escaparHTML(data.titular)}</div>
+                  <div class="col-5 text-secondary small fw-medium">Oficio Ref:</div>
+                  <div class="col-7 small font-monospace">${_escaparHTML(data.oficio)}</div>
+                  <div class="col-5 text-secondary small fw-medium">Asunto:</div>
+                  <div class="col-7 small">${_escaparHTML(data.asunto)}</div>
+                </div>
+                <div class="pt-3 border-top">
+                   <p class="small text-secondary mb-0" style="font-size: 0.6rem; word-break: break-all;">
+                     <strong>Sello Digital:</strong> ${AppState.uploadId || 'SEC-AUTH-' + Math.random().toString(36).substr(2, 9)}
+                   </p>
+                </div>
+              </div>
+              <div class="d-flex justify-content-center gap-3 mt-5 no-print">
+                <button class="apple-btn apple-btn-secondary" onclick="window.print()">
+                  <i class="bi bi-printer me-2"></i> Imprimir Acuse
+                </button>
+                <button class="apple-btn apple-btn-primary" onclick="cambiarVista('v-dashboard'); resetForm();">
+                  Finalizar Proceso
+                </button>
+              </div>
+            </div>
+          `;
+
           AppState.uploadId = null; // Limpiar ID tras éxito
-          resetForm();
-          cambiarVista('v-dashboard');
         } else {
           const msg = res ? res.message : "Error al registrar el oficio";
           showToast('Error', msg, 'danger');
