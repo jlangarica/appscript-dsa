@@ -32,6 +32,11 @@
           <i class="bi bi-archive-fill"></i> Biblioteca
         </a>
       </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="toggleTheme()" style="cursor: pointer;">
+          <i class="bi bi-moon-stars-fill"></i> Cambiar Tema
+        </a>
+      </li>
       <li class="nav-item mt-auto">
         <a class="nav-link" href="#" style="color: #ff7675;">
           <i class="bi bi-box-arrow-right"></i> Salir
@@ -73,12 +78,17 @@
           </div>
         </div>
         <div class="col-md-3">
-          <div class="stats-card">
-            <div class="text-muted small fw-bold mb-1">TIEMPO PROMEDIO</div>
-            <div class="h3 fw-bold mb-0">4.2 min</div>
-            <div class="text-primary small mt-2">Optimizado con IA</div>
+          <div class="stats-card text-center">
+            <div class="text-muted small fw-bold mb-2">EFICIENCIA OCR</div>
+            <div class="donut-chart">
+              <svg class="donut-svg" width="120" height="120" viewBox="0 0 42 42">
+                <circle class="donut-segment-bg" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+                <circle class="donut-segment donut-segment-success" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke-dasharray="85 15" stroke-dashoffset="25"></circle>
+              </svg>
+              <div class="donut-text">85%</div>
+            </div>
+            <div class="text-primary small mt-2">Precisión Gemini</div>
           </div>
-          
         </div>
       </div>
 
@@ -235,10 +245,17 @@
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
       <h2 class="fw-bold mb-4">Biblioteca de Expedientes</h2>
-      <div class="glass-card p-5 text-center">
+      <div class="glass-card p-4 mb-4">
+        <div class="input-group input-group-lg shadow-sm">
+          <span class="input-group-text border-0 bg-transparent"><i class="bi bi-search text-primary"></i></span>
+          <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent" placeholder="Buscar por remitente, asunto o folio...">
+        </div>
+      </div>
+
+      <div class="glass-card p-5 text-center" id="empty-search">
         <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
         <h4 class="mt-3">Buscador Histórico</h4>
-        <p class="text-muted">Próximamente: Filtros avanzados por fecha, remitente y contenido OCR.</p>
+        <p class="text-muted">Empieza a escribir para filtrar la base de datos en tiempo real.</p>
       </div>
     </div>
 
@@ -247,7 +264,7 @@
   <!-- LOADER GLOBAL -->
   <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
     <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-    <div class="loader-text h5">Procesando...</div>
+    <div id="loader-message" class="loader-text h5">Procesando...</div>
   </div>
 
   <!-- TOAST CONTAINER -->
