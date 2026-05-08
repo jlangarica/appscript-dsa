@@ -412,18 +412,33 @@
 
     google.script.run
       .withSuccessHandler(res => {
+        console.log("Servidor respondió:", res);
         toggleLoading(false);
-        if (res && res.success) {
-          showToast('Éxito', 'Documento generado correctamente.', 'success');
-          window.open(res.url, '_blank');
-          cerrarPanelRespuesta();
-        } else {
-          showToast('Error', res.message || 'No se pudo generar el documento.', 'danger');
+        try {
+          if (res && res.success) {
+            showToast('Éxito', 'Documento generado y registrado correctamente.', 'success');
+            cerrarPanelRespuesta();
+            // Abrir en nueva pestaña si es posible
+            if (res.url) {
+              const win = window.open(res.url, '_blank');
+              if (!win) showToast('Aviso', 'El documento se creó, pero el navegador bloqueó la ventana emergente.', 'warning');
+            }
+          } else {
+            const msg = res ? res.message : "Respuesta vacía del servidor";
+            showToast('Error de Generación', msg, 'danger');
+            alert("Error al generar: " + msg); // Alerta de respaldo si el toast falla
+          }
+        } catch (e) {
+          console.error("Error en success handler:", e);
+          showToast('Error', 'Fallo al procesar respuesta del servidor.', 'danger');
         }
       })
       .withFailureHandler(err => {
         toggleLoading(false);
-        showToast('Error de Servidor', err.message, 'danger');
+        console.error("Fallo crítico en EjecutarGeneracion:", err);
+        const msg = err ? err.message : "Error desconocido de red";
+        showToast('Error Crítico', msg, 'danger');
+        alert("Fallo crítico: " + msg);
       })
       .generarRespuestaOficio(payload);
   }

@@ -345,22 +345,25 @@ function generarRespuestaOficio(datos) {
     
     const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
     
-    body.replaceText("\\{\\{FECHA\\}\\}", hoy);
-    body.replaceText("\\{\\{TITULAR\\}\\}", datos.titular);
-    body.replaceText("\\{\\{AREA\\}\\}", datos.area);
-    body.replaceText("\\{\\{ASUNTO\\}\\}", datos.asunto);
-    body.replaceText("\\{\\{REFERENCIA\\}\\}", datos.oficio);
-    body.replaceText("\\{\\{RESPUESTA\\}\\}", contenidoFinal);
+    // Usamos expresiones regulares más flexibles (manejan espacios opcionales: {{ CAMPO }})
+    body.replaceText("\\{\\{\\s*FECHA\\s*\\}\\}", hoy);
+    body.replaceText("\\{\\{\\s*TITULAR\\s*\\}\\}", datos.titular);
+    body.replaceText("\\{\\{\\s*AREA\\s*\\}\\}", datos.area);
+    body.replaceText("\\{\\{\\s*ASUNTO\\s*\\}\\}", datos.asunto);
+    body.replaceText("\\{\\{\\s*REFERENCIA\\s*\\}\\}", datos.oficio);
+    body.replaceText("\\{\\{\\s*RESPUESTA\\s*\\}\\}", contenidoFinal);
     
     doc.saveAndClose();
 
-    // 3. Registrar en pestaña "Generados"
+    // 3. Registrar en pestaña "Generados" (Antes de devolver éxito)
+    console.log("Registrando en Spreadsheet...");
     registrarEnGenerados(datos, copiaDoc.getUrl());
 
-    return { success: true, url: copiaDoc.getUrl() };
+    console.log("Generación completada con éxito.");
+    return { success: true, url: copiaDoc.getUrl(), message: "Documento generado y registrado." };
   } catch (error) {
-    console.error("Error en generarRespuestaOficio:", error.toString());
-    return { success: false, message: error.toString() };
+    console.error("Error CRÍTICO en generarRespuestaOficio:", error.toString());
+    return { success: false, message: "Error en servidor: " + error.toString() };
   }
 }
 
@@ -373,21 +376,27 @@ function registrarEnGenerados(datos, docUrl) {
     let sheet = ss.getSheetByName("Generados");
     
     if (!sheet) {
+      console.log("Creando pestaña Generados...");
       sheet = ss.insertSheet("Generados");
-      sheet.appendRow(["FECHA", "REFERENCIA (OFICIO)", "DESTINATARIO", "ASUNTO", "REDACTOR", "URL DOCUMENTO"]);
-      sheet.getRange("A1:F1").setBackground("#f3f3f3").setFontWeight("bold");
+      sheet.appendRow(["FECHA", "REFERENCIA (OFICIO)", "DESTINATARIO", "ÁREA", "ASUNTO", "REDACTOR", "URL DOCUMENTO"]);
+      sheet.getRange("A1:G1").setBackground("#f3f3f3").setFontWeight("bold");
     }
 
+    const email = Session.getActiveUser().getEmail() || "Usuario";
     sheet.appendRow([
       new Date(),
-      datos.oficio,
-      datos.titular,
-      datos.asunto,
-      Session.getActiveUser().getEmail(),
+      datos.oficio || "N/A",
+      datos.titular || "N/A",
+      datos.area || "N/A",
+      datos.asunto || "N/A",
+      email,
       docUrl
     ]);
+    SpreadsheetApp.flush(); // Forzar escritura inmediata
+    console.log("Fila añadida a Generados.");
   } catch (e) {
-    console.error("Error al registrar en Generados:", e.toString());
+    console.error("Error detallado en registrarEnGenerados:", e.toString());
+    throw new Error("No se pudo registrar en el Sheet: " + e.message);
   }
 }
 
