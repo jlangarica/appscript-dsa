@@ -23,23 +23,26 @@
     
     <div class="nav-group-title">Menu Principal</div>
     <a class="mac-nav-link active" onclick="cambiarVista('v-dashboard')">
-      <i class="bi bi-grid"></i> Inicio
+      <i class="bi bi-grid"></i> <span>Inicio</span>
     </a>
     <a class="mac-nav-link" onclick="cambiarVista('v-registro')">
-      <i class="bi bi-plus-circle"></i> Nuevo Registro
+      <i class="bi bi-plus-circle"></i> <span>Nuevo Registro</span>
     </a>
     <a class="mac-nav-link" onclick="cambiarVista('v-archivo')">
-      <i class="bi bi-archive"></i> Biblioteca
+      <i class="bi bi-archive"></i> <span>Biblioteca</span>
     </a>
 
     <div class="nav-group-title">Preferencias</div>
     <a class="mac-nav-link" onclick="toggleTheme()" style="cursor: pointer;">
-      <i class="bi bi-moon-stars"></i> Cambiar Tema
+      <i id="theme-icon" class="bi bi-moon-stars" style="transition: transform 0.4s ease;"></i> <span>Cambiar Tema</span>
     </a>
     
     <div class="mt-auto">
+      <a class="mac-nav-link mb-2" onclick="toggleSidebar()" style="cursor: pointer;">
+        <i id="sidebar-icon" class="bi bi-layout-sidebar"></i> <span>Contraer</span>
+      </a>
       <a class="mac-nav-link" href="#" style="color: var(--system-red);">
-        <i class="bi bi-box-arrow-right" style="color: var(--system-red);"></i> Salir
+        <i class="bi bi-box-arrow-right" style="color: var(--system-red);"></i> <span>Salir</span>
       </a>
     </div>
   </nav>
@@ -324,7 +327,7 @@
           <div class="col-md-4">
             <div class="input-group">
               <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
-              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2" placeholder="Búsqueda inteligente / semántica...">
+              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2" placeholder="Buscar oficio... (Cmd + K)">
             </div>
           </div>
           <div class="col-md-2">
@@ -384,7 +387,10 @@
         <div id="empty-search" class="text-center py-5 d-none">
           <i class="bi bi-search text-secondary opacity-25" style="font-size: 4rem;"></i>
           <h4 class="mt-3 fw-semibold">Sin resultados</h4>
-          <p class="text-secondary">Prueba ajustando los filtros o el texto de búsqueda.</p>
+          <p class="text-secondary mb-4">No se encontraron oficios que coincidan con los filtros actuales.</p>
+          <button class="apple-btn apple-btn-secondary" onclick="limpiarFiltrosYBuscar()">
+            <i class="bi bi-x-circle me-2"></i> Limpiar Filtros
+          </button>
         </div>
 
         <!-- BOTÓN CARGAR MÁS -->
