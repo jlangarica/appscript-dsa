@@ -81,6 +81,14 @@
     if (searchInput) {
       searchInput.addEventListener('input', _debounce(() => aplicarFiltrosBiblioteca(), 300));
     }
+
+    // Auto-resize textareas
+    document.querySelectorAll('textarea.mac-input').forEach(el => {
+      el.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+    });
   });
 
   function initSearch() {
@@ -209,8 +217,11 @@
       // Incrementar progreso simulado (más lento al final)
       if (progress < 90) {
         progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
         const progressBar = document.getElementById('loader-progress');
+        if (progress >= 90) {
+          progress = 90;
+          if (progressBar) progressBar.classList.add('processing');
+        }
         if (progressBar) progressBar.style.width = progress + '%';
       }
     }, 3000);
@@ -264,6 +275,13 @@
     document.getElementById('campo-tipo-doc').value = data.tipo_doc || 'Informativo';
     document.getElementById('campo-urgencia').value = data.urgencia || 'Normal';
     document.getElementById('campo-requiere-respuesta').checked = !!data.requiere_respuesta;
+    
+    // Disparar auto-resize para textareas poblados
+    setTimeout(() => {
+      document.querySelectorAll('textarea.mac-input').forEach(el => {
+        el.dispatchEvent(new Event('input'));
+      });
+    }, 100);
   }
 
   // --- CONFIRMACIÓN FINAL ---
@@ -379,17 +397,23 @@
     document.getElementById('resp-notas').value = '';
     
     const panel = document.getElementById('panel-respuesta');
+    const overlay = document.getElementById('panel-overlay');
     panel.classList.remove('d-none');
+    overlay.classList.remove('d-none');
     setTimeout(() => {
       panel.style.transform = 'translateX(0)';
+      overlay.style.opacity = '1';
     }, 10);
   }
 
   function cerrarPanelRespuesta() {
     const panel = document.getElementById('panel-respuesta');
+    const overlay = document.getElementById('panel-overlay');
     panel.style.transform = 'translateX(100%)';
+    overlay.style.opacity = '0';
     setTimeout(() => {
       panel.classList.add('d-none');
+      overlay.classList.add('d-none');
     }, 400);
   }
 
@@ -608,7 +632,10 @@
       
       if (msgEl) msgEl.innerText = message;
       if (subMsgEl) subMsgEl.innerText = submessage;
-      if (!show && progressBar) progressBar.style.width = '0%';
+      if (!show && progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('processing');
+      }
     }
   }
 
@@ -639,19 +666,6 @@
     `;
     
     toastContainer.insertAdjacentHTML('beforeend', html);
-    
-    // Add custom animation style if not exists
-    if (!document.getElementById('toast-animation')) {
-      const style = document.createElement('style');
-      style.id = 'toast-animation';
-      style.textContent = `
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
 
     setTimeout(() => {
       const el = document.getElementById(id);
