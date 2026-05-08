@@ -324,7 +324,10 @@ function _conReintentos(fn, label) {
  */
 function obtenerEstadisticas() {
   try {
-    const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO).getSheets()[0];
+    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado en PropertiesService.");
+    
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+    const sheet = ss.getSheets()[0];
     const data = sheet.getDataRange().getValues(); 
 
     if (data.length <= 1) {

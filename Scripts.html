@@ -231,7 +231,8 @@
       .withSuccessHandler(response => {
         clearTimeout(timeoutId);
         clearInterval(msgInterval);
-        if (response.success) {
+        
+        if (response && response.success) {
           AppState.extractedData = response.data;
           poblarFormulario(response.data);
           cambiarPaso(2);
@@ -239,7 +240,8 @@
           if (progressBar) progressBar.style.width = '100%';
           showToast('Éxito', 'Información procesada correctamente.', 'success');
         } else {
-          showToast('Error', response.message, 'danger');
+          const msg = response ? response.message : "Error desconocido en el servidor";
+          showToast('Error', msg, 'danger');
         }
         AppState.isProcessing = false;
         toggleLoading(false);
@@ -288,12 +290,13 @@
     google.script.run
       .withSuccessHandler(res => {
         clearTimeout(timeoutId);
-        if (res.success) {
+        if (res && res.success) {
           showToast('Registrado', res.message, 'success');
           resetForm();
           cambiarVista('v-dashboard');
         } else {
-          showToast('Error', res.message, 'danger');
+          const msg = res ? res.message : "Error al registrar el oficio";
+          showToast('Error', msg, 'danger');
         }
         toggleLoading(false);
       })
@@ -320,7 +323,7 @@
   function cargarEstadisticasInicio() {
     google.script.run
       .withSuccessHandler(res => {
-        if (res.success) {
+        if (res && res.success) {
           const d = res.data;
           document.getElementById('stat-total').innerText = d.total || 0;
           document.getElementById('stat-pendientes').innerText = d.pendientes || 0;
@@ -328,6 +331,8 @@
           document.getElementById('stat-hoy').innerText = d.registradosHoy || 0;
           
           _renderizarRecientes(d.recientes);
+        } else {
+          console.error("Error al cargar estadísticas:", res);
         }
       })
       .obtenerEstadisticas();
@@ -362,12 +367,13 @@
     google.script.run
       .withSuccessHandler(res => {
         toggleLoading(false);
-        if (res.success) {
+        if (res && res.success) {
           AppState.bibliotecaData = res.data;
           _poblarFiltroAreas(res.data);
           renderizarTablaBiblioteca(res.data);
         } else {
-          showToast('Error', 'No se pudo cargar la biblioteca.', 'danger');
+          const msg = res ? res.message : "Error al cargar los datos";
+          showToast('Error', msg, 'danger');
         }
       })
       .withFailureHandler(err => {
