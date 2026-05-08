@@ -59,16 +59,16 @@ function procesarDocumento(base64Data, fileName) {
     // Validación de entrada
     if (!base64Data) throw new Error("No se recibió contenido del archivo.");
 
-    // Paso único: Extracción Multimodal con Gemini
-    const jsonEstructurado = llamarGeminiMultimodal(base64Data);
+    // Paso único: Extracción Multimodal con Gemini (con reintentos exponenciales)
+    const jsonEstructurado = _conReintentos(() => llamarGeminiMultimodal(base64Data), "Gemini-OCR");
 
     return {
       success: true,
       data: jsonEstructurado
     };
   } catch (error) {
-    console.error("Error en procesarDocumento:", error);
-    return { success: false, message: "Fallo en IA: " + error.toString() };
+    _log("ERROR", "procesarDocumento", "Fallo definitivo tras reintentos", { error: error.toString() });
+    return { success: false, message: "Fallo en IA (Tras reintentos): " + error.toString() };
   }
 }
 
@@ -149,11 +149,17 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     // Bloqueo atómico por 10 segundos para evitar colisiones
     lock.waitLock(10000);
 
-    // 1. Almacenamiento en Google Drive
-    const folder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
+    // 1. Almacenamiento en Google Drive (Organización Dinámica: Año/Mes/Día)
+    const rootFolder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
+    const now = new Date();
+    
+    const yearFolder = _getOrCreateFolder(rootFolder, String(now.getFullYear()));
+    const monthFolder = _getOrCreateFolder(yearFolder, String(now.getMonth() + 1).padStart(2, '0'));
+    const dayFolder = _getOrCreateFolder(monthFolder, String(now.getDate()).padStart(2, '0'));
+
     const decodedData = Utilities.base64Decode(base64Data);
     const blob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
-    const file = folder.createFile(blob);
+    const file = dayFolder.createFile(blob);
     const fileUrl = file.getUrl();
 
     // 2. Indexación en Google Sheets (Libro de Gobierno)
@@ -171,16 +177,125 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     
     sheet.appendRow(nuevaFila);
 
+    // 3. Flujo de Trabajo Automático: Notificación de Urgencia
+    const folioGenerado = "FOL-" + Date.now().toString().slice(-4);
+    if (datosFinales.urgencia === "Alta") {
+      _notificarUrgencia(folioGenerado, datosFinales);
+    }
+
     return { 
       success: true, 
       message: "Oficio registrado correctamente en el Libro de Gobierno.",
-      folio: "FOL-" + Date.now().toString().slice(-4)
+      folio: folioGenerado
     };
   } catch (error) {
-    console.error("Error en registro final:", error);
+    _log("ERROR", "registrarOficioFinalizado", "Error al persistir datos", { error: error.toString() });
     return { success: false, message: "Error al registrar: " + error.toString() };
   } finally {
     // Siempre liberar el candado
     lock.releaseLock();
+  }
+}
+
+// ===================================================================
+// 5. UTILIDADES Y SISTEMA DE ROBUSTEZ
+// ===================================================================
+
+/**
+ * Ejecuta una función con reintentos exponenciales.
+ * Evita que el sistema falle si la IA de Google está temporalmente saturada.
+ * @param {Function} fn Función a ejecutar.
+ * @param {string} label Etiqueta para identificar el log.
+ * @return {*} Resultado de la función.
+ */
+function _conReintentos(fn, label) {
+  const MAX_RETRIES = 2;
+  const BASE_DELAY_MS = 2000;
+  let lastError = null;
+
+  for (let intento = 0; intento <= MAX_RETRIES; intento++) {
+    try {
+      return fn(); // Intenta ejecutar la llamada
+    } catch (error) {
+      lastError = error;
+      // Solo reintentamos si no es el último intento
+      if (intento < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, intento); // 2s, 4s...
+        _log("WARN", label, `Intento ${intento + 1} falló. Reintentando en ${delay}ms...`, { error: error.message });
+        Utilities.sleep(delay);
+      }
+    }
+  }
+  throw lastError; // Agotados los reintentos, lanzamos el error
+}
+
+/**
+ * Log centralizado y estructurado (Google Cloud Logging compatible).
+ * @param {string} level Nivel del log (INFO, WARN, ERROR).
+ * @param {string} label Contexto o etiqueta.
+ * @param {string} message Mensaje descriptivo.
+ * @param {Object} details Detalles adicionales del error o estado.
+ */
+function _log(level, label, message, details = {}) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level: level,
+    context: label,
+    message: message,
+    ...details
+  };
+  
+  const output = JSON.stringify(logEntry);
+  
+  switch(level.toUpperCase()) {
+    case "ERROR": console.error(output); break;
+    case "WARN":  console.warn(output);  break;
+    default:      console.log(output);   break;
+  }
+}
+
+/**
+ * Obtiene o crea una subcarpeta en Drive dinámicamente.
+ * @param {GoogleAppsScript.Drive.Folder} parent Carpeta contenedora.
+ * @param {string} name Nombre de la subcarpeta.
+ * @return {GoogleAppsScript.Drive.Folder} La carpeta encontrada o creada.
+ */
+function _getOrCreateFolder(parent, name) {
+  const folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(name);
+}
+
+/**
+ * Envía notificación por Gmail en formato HTML para oficios urgentes.
+ * @param {string} folio Folio del documento.
+ * @param {Object} datos Datos extraídos del oficio.
+ */
+function _notificarUrgencia(folio, datos) {
+  try {
+    const destinatario = Session.getActiveUser().getEmail(); 
+    const asunto = `[OFICIALÍA DIGITAL] ⚠️ Oficio URGENTE — ${folio}`;
+    const cuerpo = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: #e74c3c; border-bottom: 2px solid #fecaca; padding-bottom: 10px;">⚠️ Oficio con Prioridad Alta</h2>
+        <p style="color: #4a5568;">Se ha registrado un nuevo documento que requiere atención inmediata:</p>
+        <table style="width:100%; border-collapse: collapse; text-align: left; margin-top: 15px;">
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7; width: 30%;">Folio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${folio}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Remitente:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.remitente}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Oficio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.oficio}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Asunto:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.asunto}</td></tr>
+        </table>
+        <p style="margin-top: 20px; font-size: 0.875rem; color: #718096;">Este es un mensaje automático generado por el Sistema de Oficialía Digital.</p>
+      </div>
+    `;
+    
+    GmailApp.sendEmail(destinatario, asunto, "", { 
+      htmlBody: cuerpo,
+      name: "Sistema Oficialía Digital"
+    });
+    
+    _log("INFO", "_notificarUrgencia", `Notificación enviada para folio ${folio}`);
+  } catch (error) {
+    _log("WARN", "_notificarUrgencia", "No se pudo enviar notificación: " + error.message);
   }
 }
