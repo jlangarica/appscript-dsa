@@ -87,7 +87,7 @@
               </svg>
               <div class="donut-text">85%</div>
             </div>
-            <div class="text-primary small mt-2">Precisión Gemini</div>
+            <div class="text-primary small mt-2">Precisión de Lectura</div>
           </div>
         </div>
       </div>
@@ -169,14 +169,14 @@
             </div>
           </div>
           
-          <!-- Columna Derecha: Formulario IA -->
+          <!-- Columna Derecha: Validación de Datos -->
           <div class="col-lg-5">
             <div class="paso-container h-100">
               <div class="d-flex align-items-center gap-2 mb-4">
-                <div class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
-                  <i class="bi bi-robot"></i>
+                <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
+                  <i class="bi bi-clipboard-check"></i>
                 </div>
-                <h5 class="fw-bold mb-0">Datos Extraídos por IA</h5>
+                <h5 class="fw-bold mb-0">Metadatos Detectados</h5>
               </div>
 
               <form id="form-datos">
@@ -262,9 +262,14 @@
   </main>
 
   <!-- LOADER GLOBAL -->
-  <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
-    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-    <div id="loader-message" class="loader-text h5">Procesando...</div>
+  <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index:9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+    <div id="loader-message" class="loader-text h5 fw-bold mb-1">Procesando...</div>
+    <div id="loader-submessage" class="loader-subtext">Iniciando análisis del documento</div>
+    
+    <div class="progress-stepper">
+      <div id="loader-progress" class="progress-bar-fill"></div>
+    </div>
   </div>
 
   <!-- TOAST CONTAINER -->
