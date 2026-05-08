@@ -213,6 +213,22 @@ function llamarGeminiMultimodal(base64Data) {
  * @return {Object} Status de la operación y folio generado.
  */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
+  // 0. Validación de Integridad (Seguridad: Regla #5)
+  if (!datosFinales || !datosFinales.titular || !datosFinales.oficio) {
+    return { success: false, message: "Payload inválido. Faltan datos obligatorios (titular/oficio)." };
+  }
+
+  const cache = CacheService.getScriptCache();
+  
+  // 0.1 Idempotencia: Evitar duplicados por reintentos de red
+  if (datosFinales.uploadId) {
+    const cachedStatus = cache.get(`status_${datosFinales.uploadId}`);
+    if (cachedStatus) {
+      console.log(`Petición duplicada detectada para ID: ${datosFinales.uploadId}`);
+      return JSON.parse(cachedStatus);
+    }
+  }
+
   const lock = LockService.getScriptLock();
   try {
     // Bloqueo atómico por 10 segundos para evitar colisiones
@@ -267,11 +283,18 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
       _notificarUrgencia(folioGenerado, datosFinales);
     }
 
-    return { 
+    const response = { 
       success: true, 
       message: "Oficio registrado correctamente en la Oficialía.",
       folio: folioGenerado
     };
+
+    // Guardar resultado en caché para idempotencia (5 minutos)
+    if (datosFinales.uploadId) {
+      cache.put(`status_${datosFinales.uploadId}`, JSON.stringify(response), 300);
+    }
+
+    return response;
   } catch (error) {
     console.error("Error al registrar:", error.toString());
     return { success: false, message: "Error al registrar: " + error.toString() };
@@ -284,17 +307,17 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
  * Obtiene todos los registros de la Oficialía para la Biblioteca.
  * @return {Object} Lista de registros formateada.
  */
-function obtenerRegistros(offset = 0, limit = 50) {
+function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
   const cache = CacheService.getScriptCache();
-  const cacheKey = `${CACHE_KEYS.BIBLIOTECA}_${offset}_${limit}`;
+  const cacheKey = `${CACHE_KEYS.BIBLIOTECA}_${offset}_${limit}_${filtros ? Utilities.base64Encode(JSON.stringify(filtros)) : 'none'}`;
   const cached = cache.get(cacheKey);
   
   if (cached) {
-    console.log(`Sirviendo página ${offset} desde caché.`);
-    return { success: true, data: JSON.parse(cached), hasMore: true };
+    console.log(`Sirviendo página ${offset} con filtros desde caché.`);
+    return JSON.parse(cached);
   }
 
-  console.log(`Cargando página ${offset} desde Spreadsheet...`);
+  console.log(`Cargando registros desde Spreadsheet...`);
   try {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
@@ -305,17 +328,33 @@ function obtenerRegistros(offset = 0, limit = 50) {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { success: true, data: [], hasMore: false };
 
-    // Paginación real: Leer solo el bloque necesario
-    // Las filas son 1-indexed. Saltamos el encabezado (1) y aplicamos offset.
-    const startRow = Math.max(2, lastRow - offset - limit + 1);
-    const numRows = Math.min(limit, lastRow - offset - 1);
-    
-    if (numRows <= 0) return { success: true, data: [], hasMore: false };
+    // Para filtrado en backend, necesitamos leer todos los datos (o una ventana grande)
+    // Nota: Para grandes volúmenes, esto debería optimizarse con un índice o base de datos.
+    const allData = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+    let filteredData = allData.reverse(); // Más recientes primero
 
-    const data = sheet.getRange(startRow, 1, numRows, 11).getValues();
-    const rows = data.reverse(); // Los más recientes primero del bloque
+    if (filtros) {
+      const { texto, area, tipo, prioridad, respuesta } = filtros;
+      filteredData = filteredData.filter(row => {
+        const matchTexto = !texto || 
+          String(row[1]).toLowerCase().includes(texto.toLowerCase()) || 
+          String(row[2]).toLowerCase().includes(texto.toLowerCase()) || 
+          String(row[3]).toLowerCase().includes(texto.toLowerCase()) || 
+          String(row[4]).toLowerCase().includes(texto.toLowerCase());
+        
+        const matchArea = !area || String(row[2]) === area;
+        const matchTipo = !tipo || String(row[5]) === tipo;
+        const matchPrioridad = !prioridad || String(row[6]) === prioridad;
+        const matchRespuesta = !respuesta || String(row[7]) === respuesta;
+
+        return matchTexto && matchArea && matchTipo && matchPrioridad && matchRespuesta;
+      });
+    }
+
+    const totalFiltered = filteredData.length;
+    const registrosSegmento = filteredData.slice(offset, offset + limit);
     
-    const registros = rows.map((row) => {
+    const registros = registrosSegmento.map((row) => {
       let fechaStr = "N/A";
       try {
         fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
@@ -336,14 +375,16 @@ function obtenerRegistros(offset = 0, limit = 50) {
       };
     });
     
-    const hasMore = (lastRow - offset - limit) > 1;
+    const hasMore = (offset + limit) < totalFiltered;
 
-    // Cache por bloque
+    const result = { success: true, data: registros, hasMore: hasMore };
+
+    // Cache por bloque y filtros
     try {
-      cache.put(cacheKey, JSON.stringify(registros), 1800);
+      cache.put(cacheKey, JSON.stringify(result), 1800);
     } catch(e) {}
 
-    return { success: true, data: registros, hasMore: hasMore };
+    return result;
   } catch (error) {
     console.error("Error en obtenerRegistros:", error.toString());
     return { success: false, message: error.toString() };
