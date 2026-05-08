@@ -332,8 +332,11 @@
           
           _renderizarRecientes(d.recientes);
         } else {
-          console.error("Error al cargar estadísticas:", res);
+          console.error("Error al cargar estadísticas (Response):", res);
         }
+      })
+      .withFailureHandler(err => {
+        console.error("Error de red/GAS en cargarEstadisticasInicio:", err);
       })
       .obtenerEstadisticas();
   }
@@ -352,7 +355,7 @@
         <td class="ps-4 fw-medium">${r.folio}</td>
         <td class="small">${_escaparHTML(r.titular)}</td>
         <td class="small text-secondary text-truncate" style="max-width: 150px;">${_escaparHTML(r.asunto)}</td>
-        <td class="small text-secondary">${new Date(r.fecha).toLocaleDateString()}</td>
+        <td class="small text-secondary">${r.fecha}</td>
         <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">${r.estatus}</span></td>
       </tr>
     `).join('');

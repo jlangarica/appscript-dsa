@@ -323,12 +323,17 @@ function _conReintentos(fn, label) {
  * @return {Object} Estadísticas para el dashboard.
  */
 function obtenerEstadisticas() {
+  console.log("Iniciando obtenerEstadisticas...");
   try {
-    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado en PropertiesService.");
+    if (!CONFIG.SHEET_ID_GOBIERNO) {
+      console.warn("ID de Hoja no configurado.");
+      return { success: false, message: "ID de Hoja no configurado." };
+    }
     
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
     const sheet = ss.getSheets()[0];
     const data = sheet.getDataRange().getValues(); 
+    console.log(`Datos obtenidos: ${data.length} filas.`);
 
     if (data.length <= 1) {
       return { 
@@ -354,15 +359,22 @@ function obtenerEstadisticas() {
     });
 
     // Obtener los últimos 5 para actividad reciente
-    const recientes = rows.slice(-5).reverse().map(row => ({
-      folio: "FOL-" + row[0].getTime().toString().slice(-4), // Simulado o real si existe columna
-      titular: row[1],
-      asunto: row[4],
-      fecha: row[0],
-      estatus: row[8]
-    }));
+    const recientes = rows.slice(-5).reverse().map(row => {
+      let fechaStr = "N/A";
+      try {
+        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : row[0].toString();
+      } catch(e) {}
 
-    return {
+      return {
+        folio: "FOL-" + (row[0] instanceof Date ? row[0].getTime().toString().slice(-4) : "0000"),
+        titular: String(row[1] || "N/A"),
+        asunto: String(row[4] || "Sin asunto"),
+        fecha: fechaStr,
+        estatus: String(row[8] || "Recibido")
+      };
+    });
+
+    const result = {
       success: true,
       data: { 
         total, 
@@ -372,8 +384,10 @@ function obtenerEstadisticas() {
         recientes
       }
     };
+    console.log("Estadísticas calculadas con éxito.");
+    return result;
   } catch (error) {
-    _log("ERROR", "obtenerEstadisticas", error.toString());
+    console.error("Error en obtenerEstadisticas:", error.toString());
     return { success: false, message: "Error al calcular métricas: " + error.toString() };
   }
 }
