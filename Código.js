@@ -16,8 +16,45 @@ const CONFIG = {
   
   // Configuración de Gemini (Google AI Studio - Zero Cost)
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
-  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite"
+  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.0-flash-exp" // Modelo actualizado
 };
+
+/**
+ * Función de diagnóstico para el desarrollador.
+ * Ejecutar manualmente desde el editor de GAS para verificar IDs.
+ */
+function diagnosticarSistema() {
+  const reporte = [];
+  
+  // 1. Verificar Folder
+  try {
+    if (!CONFIG.FOLDER_ID_OFICIOS) throw new Error("ID de Carpeta no configurado.");
+    const folder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
+    reporte.push(`✅ Carpeta Drive: OK (${folder.getName()})`);
+  } catch (e) {
+    reporte.push(`❌ Error Carpeta Drive: ${e.toString()}`);
+  }
+
+  // 2. Verificar Sheet
+  try {
+    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+    reporte.push(`✅ Hoja de Cálculo: OK (${ss.getName()})`);
+  } catch (e) {
+    reporte.push(`❌ Error Hoja de Cálculo: ${e.toString()}`);
+  }
+
+  // 3. Verificar API Key
+  if (CONFIG.GEMINI_API_KEY) {
+    reporte.push("✅ API Key Gemini: Configurada.");
+  } else {
+    reporte.push("❌ API Key Gemini: NO ENCONTRADA.");
+  }
+
+  console.log("DIAGNÓSTICO DEL SISTEMA:\n" + reporte.join("\n"));
+  return reporte;
+}
+
 
 // ===================================================================
 // 2. CONTROLADOR WEB (Vistas SPA)
