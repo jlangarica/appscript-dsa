@@ -75,7 +75,9 @@ const APP_CONSTANTS = {
 Object.freeze(APP_CONSTANTS);
 
 /**
- * Limpia el caché para forzar recarga en la siguiente consulta.
+ * Limpia el caché del script para forzar la recarga de datos en la siguiente consulta.
+ * Útil tras operaciones de escritura masiva.
+ * @return {void}
  */
 function invalidarCaches() {
   const cache = CacheService.getScriptCache();
@@ -84,8 +86,8 @@ function invalidarCaches() {
 }
 
 /**
- * Función de diagnóstico para el desarrollador.
- * Ejecutar manualmente desde el editor de GAS para verificar IDs.
+ * Ejecuta una serie de pruebas de conectividad y configuración para validar el estado del sistema.
+ * @return {string[]} Reporte detallado de hallazgos.
  */
 function diagnosticarSistema() {
   const reporte = [];
@@ -125,10 +127,11 @@ function diagnosticarSistema() {
 // ===================================================================
 
 /**
- * Renderiza la interfaz principal del sistema.
- * @return {HtmlService.HtmlOutput}
+ * Punto de entrada para la Web App. Renderiza la interfaz principal.
+ * @param {GoogleAppsScript.Events.DoGet} e Evento de activación.
+ * @return {GoogleAppsScript.HTML.HtmlOutput}
  */
-function doGet() {
+function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('División de Servicios Administrativos')
@@ -137,9 +140,9 @@ function doGet() {
 }
 
 /**
- * Inyecta componentes HTML/CSS/JS en la plantilla principal.
- * @param {string} filename Nombre del archivo .html
- * @return {string} Contenido HTML procesado.
+ * Incluye el contenido de un archivo HTML dentro de otro.
+ * @param {string} filename Nombre del archivo a incluir (sin extensión).
+ * @return {string} Contenido HTML.
  */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
@@ -150,10 +153,10 @@ function include(filename) {
 // ===================================================================
 
 /**
- * Procesa el PDF nativo: OCR y Extracción de metadatos en un solo paso.
+ * Coordina el flujo de procesamiento de un documento PDF (OCR + Extracción).
  * @param {string} base64Data PDF codificado en base64.
- * @param {string} fileName Nombre original del archivo.
- * @return {Object} Datos estructurados o mensaje de error.
+ * @param {string} fileName Nombre del archivo.
+ * @return {Object} Resultado del procesamiento.
  */
 function procesarDocumento(base64Data, fileName) {
   try {
@@ -277,14 +280,23 @@ function llamarGeminiMultimodal(base64Data) {
 // 4. PERSISTENCIA Y REGISTRO (Google Drive & Sheets - Oficialía)
 // ===================================================================
 
+
 /**
- * Guarda el archivo en Drive y registra los datos en la Hoja de Cálculo.
+ * Guarda el archivo en Drive y registra los datos en la Hoja de Cálculo con validación estricta.
  * @param {Object} datosFinales Metadatos validados por el usuario.
- * @param {string} base64Data PDF original.
+ * @param {string} base64Data PDF original en base64.
  * @param {string} fileName Nombre para el archivo en Drive.
  * @return {Object} Status de la operación y folio generado.
  */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
+  // 0.0 Validación de Entradas (Seguridad: Regla #4)
+  if (!datosFinales || typeof datosFinales !== "object") throw new Error("Datos de entrada inválidos.");
+  if (!base64Data || typeof base64Data !== "string") throw new Error("Archivo PDF no válido.");
+
+  const camposRequeridos = ["titular", "area", "oficio", "asunto", "tipo_doc", "urgencia"];
+  for (const campo of camposRequeridos) {
+    if (!datosFinales[campo]) throw new Error(`El campo "${campo}" es obligatorio.`);
+  }
   const cache = CacheService.getScriptCache();
   
   // 0.1 Rate Limiting (Seguridad: Tarea #2)
@@ -370,16 +382,19 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   } catch (error) {
     // ROLLBACK ATÓMICO (Tarea #1)
     if (fileCreated) {
-      try { fileCreated.setTrashed(true); } catch(e) { console.error("Error en Rollback:", e); }
+      try { fileCreated.setTrashed(true); } catch(e) { _log("WARN", "registrarOficioFinalizado", "Error en Rollback", { error: e.toString() }); }
     }
-    console.error("Error transaccional al registrar:", error.toString());
+    _log("ERROR", "registrarOficioFinalizado", "Error transaccional al registrar", { error: error.toString() });
     return { success: false, message: "Error al registrar: " + error.toString() };
   }
 }
 
 /**
- * Obtiene todos los registros de la Oficialía para la Biblioteca.
- * @return {Object} Lista de registros formateada.
+ * Recupera y filtra los registros de la Oficialía desde Sheets.
+ * @param {number} offset Desplazamiento inicial para paginación.
+ * @param {number} limit Cantidad máxima de registros a retornar.
+ * @param {Object|null} filtros Criterios de búsqueda opcionales.
+ * @return {Object} Objeto con datos y estado de paginación.
  */
 function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
   const cacheKey = `${CACHE_KEYS.BIBLIOTECA}_${offset}_${limit}_${filtros ? Utilities.base64Encode(JSON.stringify(filtros)) : 'none'}`;
@@ -461,15 +476,15 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
 
     return result;
   } catch (error) {
-    console.error("Error en obtenerRegistros:", error.toString());
+    _log("ERROR", "obtenerRegistros", "Error al recuperar registros", { error: error.toString() });
     return { success: false, message: error.toString() };
   }
 }
 
 /**
- * Genera un documento de respuesta basado en una plantilla y metadatos.
- * @param {Object} datos El objeto con los datos del oficio original y el texto de respuesta.
- * @return {Object} Resultado con el enlace al documento generado.
+ * Crea un documento de respuesta institucional basado en una plantilla.
+ * @param {Object} datos Metadatos del oficio y contenido de la respuesta.
+ * @return {Object} URL del documento generado o error.
  */
 function generarRespuestaOficio(datos) {
   console.log("Iniciando generación de respuesta...");
@@ -527,13 +542,16 @@ function generarRespuestaOficio(datos) {
     console.log("Generación completada con éxito.");
     return { success: true, url: copiaDoc.getUrl(), message: "Documento generado y registrado." };
   } catch (error) {
-    console.error("Error CRÍTICO en generarRespuestaOficio:", error.toString());
+    _log("ERROR", "generarRespuestaOficio", "Error CRÍTICO al generar respuesta", { error: error.toString() });
     return { success: false, message: "Error en servidor: " + error.toString() };
   }
 }
 
 /**
- * Registra la respuesta generada en la pestaña 'Generados'.
+ * Indexa un documento generado en la bitácora de respuestas.
+ * @param {Object} datos Metadatos del documento.
+ * @param {string} docUrl Enlace de Drive al documento.
+ * @return {void}
  */
 function registrarEnGenerados(datos, docUrl) {
   try {
@@ -561,13 +579,15 @@ function registrarEnGenerados(datos, docUrl) {
     invalidarCaches(); // Reflejar en estadísticas e inicio
     console.log("Fila añadida a Generados.");
   } catch (e) {
-    console.error("Error detallado en registrarEnGenerados:", e.toString());
+    _log("ERROR", "registrarEnGenerados", "Error al registrar en bitácora", { error: e.toString() });
     throw new Error("No se pudo registrar en el Sheet: " + e.message);
   }
 }
 
 /**
- * Llama a Gemini para procesar texto (sin PDF).
+ * Realiza una consulta de texto a la API de Gemini.
+ * @param {string} prompt Instrucción para el modelo.
+ * @return {string} Respuesta generada.
  */
 function llamarGeminiTexto(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
@@ -597,11 +617,10 @@ function llamarGeminiTexto(prompt) {
 // ===================================================================
 
 /**
- * Ejecuta una función con reintentos exponenciales.
- * Evita que el sistema falle si la IA de Google está temporalmente saturada.
+ * Wrapper de ejecución con lógica de reintento exponencial.
  * @param {Function} fn Función a ejecutar.
- * @param {string} label Etiqueta para identificar el log.
- * @return {*} Resultado de la función.
+ * @param {string} label Etiqueta para logging.
+ * @return {*} Resultado de la ejecución exitosa.
  */
 function _conReintentos(fn, label) {
   const MAX_RETRIES = 2;
@@ -632,8 +651,8 @@ function _conReintentos(fn, label) {
 }
 
 /**
- * Obtiene métricas procesadas en el backend (reduce peso de red)
- * @return {Object} Estadísticas para el dashboard.
+ * Calcula métricas agregadas para el Tablero de Control.
+ * @return {Object} Estadísticas consolidadas.
  */
 function obtenerEstadisticas() {
   const cache = CacheService.getScriptCache();
@@ -696,14 +715,14 @@ function obtenerEstadisticas() {
 
     return { success: true, data: resultData };
   } catch (error) {
-    console.error("Error en obtenerEstadisticas:", error.toString());
+    _log("ERROR", "obtenerEstadisticas", "Error al calcular métricas", { error: error.toString() });
     return { success: false, message: "Error al calcular métricas: " + error.toString() };
   }
 }
 
 /**
- * Endpoint ultraligero para el Heartbeat del frontend (Tarea #3).
- * Solo verifica si el número de filas ha cambiado.
+ * Verifica cambios rápidos en el número de registros (Heartbeat).
+ * @return {number} Cantidad actual de filas en la hoja.
  */
 function checarActualizaciones() {
   try {
@@ -716,7 +735,10 @@ function checarActualizaciones() {
 }
 
 /**
- * Control de Rate Limit para prevenir abusos (Tarea #2).
+ * Implementa una barrera de tiempo entre acciones por usuario.
+ * @param {string} accion Identificador del proceso.
+ * @param {number} limiteSegundos Tiempo de espera requerido.
+ * @throws {Error} Si se excede la frecuencia permitida.
  */
 function _verificarRateLimit(accion, limiteSegundos) {
   const cache = CacheService.getScriptCache();
@@ -730,7 +752,8 @@ function _verificarRateLimit(accion, limiteSegundos) {
 }
 
 /**
- * CRON JOB: Revisa diariamente plazos de conservación (Tarea #3 Archivística).
+ * CRON JOB: Automatiza la auditoría de vigencia documental según CADIDO.
+ * @return {void}
  */
 function auditarPlazosDeConservacion() {
   try {
@@ -759,10 +782,15 @@ function auditarPlazosDeConservacion() {
 
     if (expirados.length > 0) {
       // Actualizar estatus en batch para eficiencia
-      expirados.forEach(e => {
-        const range = `Recibidos!K${e.fila}`;
-        Sheets.Spreadsheets.Values.update({ values: [[APP_CONSTANTS.ESTATUS.VENCIDO]] }, CONFIG.SHEET_ID_GOBIERNO, range, { valueInputOption: "RAW" });
-      });
+      const data = expirados.map(e => ({
+        range: `Recibidos!K${e.fila}`,
+        values: [[APP_CONSTANTS.ESTATUS.VENCIDO]]
+      }));
+
+      Sheets.Spreadsheets.Values.batchUpdate({
+        valueInputOption: "RAW",
+        data: data
+      }, CONFIG.SHEET_ID_GOBIERNO);
 
       // Notificar por Gmail
       const listaHtml = expirados.map(o => `<li><b>${o.oficio}</b> (${o.serie})</li>`).join('');
@@ -776,16 +804,17 @@ function auditarPlazosDeConservacion() {
       console.log(`Auditoría completada: ${expirados.length} documentos marcados.`);
     }
   } catch (e) {
-    console.error("Error en auditoría archivística:", e.toString());
+    _log("ERROR", "auditarPlazosDeConservacion", "Error en auditoría archivística", { error: e.toString() });
   }
 }
 
 /**
- * Logging estructurado JSON nativo para Stackdriver (Google Cloud).
- * @param {string} level Nivel del log (INFO, WARN, ERROR).
- * @param {string} context Contexto o etiqueta.
- * @param {string} message Mensaje descriptivo.
- * @param {Object} extra Detalles adicionales (opcional).
+ * Centraliza el registro de logs estructurados para Google Cloud Logging.
+ * @param {string} level INFO | WARN | ERROR.
+ * @param {string} context Módulo de origen.
+ * @param {string} message Descripción del evento.
+ * @param {Object} [extra] Metadatos adicionales.
+ * @return {void}
  */
 function _log(level, context, message, extra) {
   const entry = {
@@ -806,8 +835,8 @@ function _log(level, context, message, extra) {
 }
 
 /**
- * Obtiene la carpeta del día actual usando caché de ScriptProperties (Tarea #3).
- * Reduce la latencia de Drive de segundos a milisegundos.
+ * Gestiona la estructura jerárquica de carpetas en Drive (Año/Mes/Día).
+ * @return {GoogleAppsScript.Drive.Folder} Carpeta del día actual.
  */
 function obtenerCarpetaDelDia() {
   const hoyStr = new Date().toISOString().split('T')[0];
@@ -836,6 +865,12 @@ function obtenerCarpetaDelDia() {
   return dayFolder;
 }
 
+/**
+ * Busca o crea una subcarpeta por nombre.
+ * @param {GoogleAppsScript.Drive.Folder} parent Carpeta padre.
+ * @param {string} name Nombre de la carpeta destino.
+ * @return {GoogleAppsScript.Drive.Folder}
+ */
 function _getOrCreateFolder(parent, name) {
   const folders = parent.getFoldersByName(name);
   if (folders.hasNext()) return folders.next();
@@ -843,8 +878,11 @@ function _getOrCreateFolder(parent, name) {
 }
 
 /**
- * SISTEMA DE CACHÉ FRAGMENTADO (Tarea #2)
- * Permite guardar objetos > 100KB dividiéndolos en trozos.
+ * Supera el límite de 100KB de CacheService fragmentando los datos.
+ * @param {string} key Identificador.
+ * @param {string} value Datos serializados.
+ * @param {number} [expiration] Tiempo de vida en segundos.
+ * @return {void}
  */
 function _putCacheChunked(key, value, expiration = APP_CONSTANTS.LIMITES.CACHE_EXPIRATION_SEC) {
   const cache = CacheService.getScriptCache();
@@ -863,6 +901,11 @@ function _putCacheChunked(key, value, expiration = APP_CONSTANTS.LIMITES.CACHE_E
   cache.putAll(chunkMap, expiration);
 }
 
+/**
+ * Recompone datos fragmentados desde el caché.
+ * @param {string} key Identificador.
+ * @return {string|null} Datos originales o null si expiró.
+ */
 function _getCacheChunked(key) {
   const cache = CacheService.getScriptCache();
   const totalChunksStr = cache.get(`${key}_total`);
@@ -883,9 +926,10 @@ function _getCacheChunked(key) {
 }
 
 /**
- * Envía notificación por Gmail en formato HTML para oficios urgentes.
- * @param {string} folio Folio del documento.
- * @param {Object} datos Datos extraídos del oficio.
+ * Envía una alerta inmediata vía email para documentos críticos.
+ * @param {string} folio ID del registro.
+ * @param {Object} datos Metadatos del oficio.
+ * @return {void}
  */
 function _notificarUrgencia(folio, datos) {
   try {
