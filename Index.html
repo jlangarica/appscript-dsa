@@ -22,23 +22,23 @@
     </div>
     
     <div class="nav-group-title">Oficialía de Partes</div>
-    <a class="mac-nav-link active" onclick="cambiarVista('v-dashboard')">
+    <a class="mac-nav-link active" onclick="DSA_App.cambiarVista('v-dashboard')">
       <i class="bi bi-house-door"></i> <span>Libro de Gobierno</span>
     </a>
-    <a class="mac-nav-link" onclick="cambiarVista('v-registro')">
+    <a class="mac-nav-link" onclick="DSA_App.cambiarVista('v-registro')">
       <i class="bi bi-file-earmark-plus"></i> <span>Recepción de Oficio</span>
     </a>
-    <a class="mac-nav-link" onclick="cambiarVista('v-archivo')">
+    <a class="mac-nav-link" onclick="DSA_App.cambiarVista('v-archivo')">
       <i class="bi bi-collection"></i> <span>Acervo Documental</span>
     </a>
 
     <div class="nav-group-title">Preferencias</div>
-    <a class="mac-nav-link" onclick="toggleTheme()" style="cursor: pointer;">
+    <a class="mac-nav-link" onclick="DSA_App.toggleTheme()" style="cursor: pointer;">
       <i id="theme-icon" class="bi bi-moon-stars" style="transition: transform 0.4s ease;"></i> <span>Cambiar Tema</span>
     </a>
     
     <div class="mt-auto">
-      <a class="mac-nav-link mb-2" onclick="toggleSidebar()" style="cursor: pointer;">
+      <a class="mac-nav-link mb-2" onclick="DSA_App.toggleSidebar()" style="cursor: pointer;">
         <i id="sidebar-icon" class="bi bi-layout-sidebar"></i> <span>Contraer</span>
       </a>
       <a class="mac-nav-link" href="#" style="color: var(--system-red);">
@@ -138,10 +138,10 @@
         <div class="col-lg-4">
           <div class="mac-card h-100 p-4 mb-0">
             <h6 class="fw-bold mb-3">Acciones Rápidas</h6>
-            <button class="btn btn-light w-100 text-start mb-2 shadow-sm rounded-3 py-2 border-0" onclick="cambiarVista('v-registro')" style="background: var(--system-gray6);">
+            <button class="btn btn-light w-100 text-start mb-2 shadow-sm rounded-3 py-2 border-0" onclick="DSA_App.cambiarVista('v-registro')" style="background: var(--system-gray6);">
               <i class="bi bi-file-earmark-plus text-primary me-2"></i> Subir Oficio
             </button>
-            <button class="btn btn-light w-100 text-start mb-4 shadow-sm rounded-3 py-2 border-0" onclick="cambiarVista('v-archivo')" style="background: var(--system-gray6);">
+            <button class="btn btn-light w-100 text-start mb-4 shadow-sm rounded-3 py-2 border-0" onclick="DSA_App.cambiarVista('v-archivo')" style="background: var(--system-gray6);">
               <i class="bi bi-search text-success me-2"></i> Buscar Documento
             </button>
 
@@ -171,17 +171,17 @@
 
       <!-- MAC STEPPER -->
       <div class="apple-stepper" id="stepper-main">
-        <div class="step-item active" id="step-ui-1" onclick="if(this.classList.contains('completed')) cambiarPaso(1)">
+        <div class="step-item active" id="step-ui-1" onclick="if(this.classList.contains('completed')) DSA_App.cambiarPaso(1)">
           <div class="step-dot">1</div>
           <div class="step-label">Subir</div>
         </div>
         <div class="step-line"></div>
-        <div class="step-item" id="step-ui-2" onclick="if(this.classList.contains('completed')) cambiarPaso(2)">
+        <div class="step-item" id="step-ui-2" onclick="if(this.classList.contains('completed')) DSA_App.cambiarPaso(2)">
           <div class="step-dot">2</div>
           <div class="step-label">Validar</div>
         </div>
         <div class="step-line"></div>
-        <div class="step-item" id="step-ui-3" onclick="if(this.classList.contains('completed')) cambiarPaso(3)">
+        <div class="step-item" id="step-ui-3" onclick="if(this.classList.contains('completed')) DSA_App.cambiarPaso(3)">
           <div class="step-dot">3</div>
           <div class="step-label">Confirmar</div>
         </div>
@@ -214,7 +214,7 @@
               <div class="mac-card-header">
                 <span class="small fw-semibold">VISOR DE DOCUMENTO</span>
                 <div class="traffic-lights">
-                  <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" onclick="cambiarPaso(1)">Cambiar</button>
+                  <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" onclick="DSA_App.cambiarPaso(1)">Cambiar</button>
                   <div class="dot red"></div>
                   <div class="dot yellow"></div>
                   <div class="dot green"></div>
@@ -292,7 +292,7 @@
               </div>
 
               <div class="sticky-bottom d-flex justify-content-end">
-                <button type="button" class="apple-btn apple-btn-primary w-100" onclick="validarYContinuar()">
+                <button type="button" class="apple-btn apple-btn-primary w-100" onclick="DSA_App.validarYContinuar()">
                   Revisar y Continuar
                 </button>
               </div>
@@ -328,8 +328,8 @@
           </div>
 
           <div class="d-flex justify-content-center gap-3">
-            <button class="apple-btn apple-btn-secondary px-5" onclick="cambiarPaso(2)">Regresar</button>
-            <button class="apple-btn apple-btn-primary px-5" onclick="registrarOficioFinal()">Confirmar y Registrar</button>
+            <button class="apple-btn apple-btn-secondary px-5" onclick="DSA_App.cambiarPaso(2)">Regresar</button>
+            <button class="apple-btn apple-btn-primary px-5" onclick="DSA_App.registrarOficioFinal()">Confirmar y Registrar</button>
           </div>
         </div>
       </div>
@@ -351,7 +351,7 @@
             <div class="d-flex gap-3 align-items-center flex-wrap">
               <div style="min-width: 150px;">
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">ÁREA / DEPENDENCIA</div>
-                <select id="filtro-area" class="mac-input py-1 small" onchange="aplicarFiltrosBiblioteca()">
+                <select id="filtro-area" class="mac-input py-1 small" onchange="DSA_App.aplicarFiltrosBiblioteca()">
                   <option value="">Todas las Áreas</option>
                 </select>
               </div>
@@ -383,7 +383,7 @@
                 </div>
               </div>
               <div class="ms-auto pt-3">
-                <button class="btn btn-link text-secondary p-0 small text-decoration-none" onclick="limpiarFiltrosYBuscar()">Limpiar</button>
+                <button class="btn btn-link text-secondary p-0 small text-decoration-none" onclick="DSA_App.limpiarFiltrosYBuscar()">Limpiar</button>
               </div>
             </div>
           </div>
@@ -431,7 +431,7 @@
           <div id="det-content" class="p-4 overflow-auto h-100 d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
               <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2" id="det-folio-tag">FOL-0000</div>
-              <button class="btn-close" onclick="cerrarDetalle()"></button>
+              <button class="btn-close" onclick="DSA_App.cerrarDetalle()"></button>
             </div>
             
             <h4 id="det-asunto" class="fw-bold mb-1">Cargando asunto...</h4>
@@ -484,12 +484,12 @@
 </main>
 
 <!-- PANEL DE RESPUESTA (Slide-over) -->
-  <div id="panel-overlay" class="d-none" style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; backdrop-filter: blur(2px); transition: opacity 0.3s; opacity: 0;" onclick="cerrarPanelRespuesta()"></div>
+  <div id="panel-overlay" class="d-none" style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; backdrop-filter: blur(2px); transition: opacity 0.3s; opacity: 0;" onclick="DSA_App.cerrarPanelRespuesta()"></div>
   <div id="panel-respuesta" class="d-none" style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); border-left: 1px solid var(--separator); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(100%);">
     <div class="p-4 h-100 d-flex flex-column">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Redactar Respuesta</h4>
-        <button class="btn-close" onclick="cerrarPanelRespuesta()"></button>
+        <button class="btn-close" onclick="DSA_App.cerrarPanelRespuesta()"></button>
       </div>
 
       <div class="alert bg-primary-subtle text-primary border-0 rounded-4 small mb-4">
@@ -524,10 +524,10 @@
       </div>
 
       <div class="d-grid gap-2">
-        <button class="apple-btn apple-btn-primary ai-magic-btn" onclick="ejecutarGeneracion(true)">
+        <button class="apple-btn apple-btn-primary ai-magic-btn" onclick="DSA_App.ejecutarGeneracion(true)">
           <i class="bi bi-stars me-2"></i> Redacción Profesional
         </button>
-        <button class="apple-btn apple-btn-secondary" onclick="ejecutarGeneracion(false)">
+        <button class="apple-btn apple-btn-secondary" onclick="DSA_App.ejecutarGeneracion(false)">
           <i class="bi bi-file-earmark-text me-2"></i> Borrador Simple
         </button>
       </div>
