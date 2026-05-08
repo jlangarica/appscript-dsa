@@ -67,7 +67,24 @@
   document.addEventListener('DOMContentLoaded', () => {
     cambiarVista('v-dashboard');
     initDragAndDrop();
+    initSearch();
+    
+    // Aplicar tema inicial
+    if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
   });
+
+  function initSearch() {
+    const filtro = document.getElementById('filtro-texto');
+    if (!filtro) return;
+    
+    filtro.addEventListener('input', _debounce(() => {
+      const query = filtro.value.trim();
+      console.log('Buscando:', query);
+      // Simulación de búsqueda - en producción llamaría a google.script.run
+      const emptySearch = document.getElementById('empty-search');
+      if (emptySearch) emptySearch.style.display = query ? 'none' : 'block';
+    }, 400));
+  }
 
   // --- ENRUTADOR ---
   function cambiarVista(idVista) {
@@ -147,20 +164,37 @@
 
   function procesarDocumento() {
     AppState.isProcessing = true;
-    toggleLoading(true, "Analizando documento con IA...");
+    
+    // Rotar mensajes de carga (UX Psicología)
+    const messages = [
+      'Analizando documento con IA...',
+      'Extrayendo texto con OCR forense...',
+      'Clasificando con Gemini Flash...',
+      'Estructurando metadatos...'
+    ];
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % messages.length;
+      const loaderMsg = document.getElementById('loader-message');
+      if (loaderMsg) loaderMsg.textContent = messages[msgIdx];
+    }, 4000);
 
-    // Temporizador de seguridad (60 segundos)
+    toggleLoading(true, messages[0]);
+
+    // Temporizador de seguridad extendido (90 segundos)
     const timeoutId = setTimeout(() => {
       if (AppState.isProcessing) {
         AppState.isProcessing = false;
+        clearInterval(msgInterval);
         toggleLoading(false);
-        showToast('Timeout', 'La operación está tardando demasiado. Reintenta con un archivo más ligero.', 'danger');
+        showToast('Timeout', 'La operación tardó demasiado. Intenta con un archivo más ligero.', 'danger');
       }
-    }, 60000);
+    }, 90000);
 
     google.script.run
       .withSuccessHandler(response => {
         clearTimeout(timeoutId);
+        clearInterval(msgInterval);
         if (response.success) {
           AppState.extractedData = response.data;
           poblarFormulario(response.data);
@@ -174,6 +208,7 @@
       })
       .withFailureHandler(err => {
         clearTimeout(timeoutId);
+        clearInterval(msgInterval);
         showToast('Error de Servidor', err.message, 'danger');
         AppState.isProcessing = false;
         toggleLoading(false);
@@ -182,9 +217,9 @@
   }
 
   function poblarFormulario(data) {
-    document.getElementById('campo-remitente').value = data.remitente || '';
-    document.getElementById('campo-oficio').value = data.oficio || '';
-    document.getElementById('campo-asunto').value = data.asunto || '';
+    document.getElementById('campo-remitente').value = _escaparHTML(data.remitente) || '';
+    document.getElementById('campo-oficio').value = _escaparHTML(data.oficio) || '';
+    document.getElementById('campo-asunto').value = _escaparHTML(data.asunto) || '';
     document.getElementById('campo-urgencia').value = data.urgencia || 'Normal';
   }
 
