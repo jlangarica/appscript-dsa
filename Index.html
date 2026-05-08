@@ -204,27 +204,52 @@
               </div>
 
               <form id="form-datos">
-                <div class="mb-4">
-                  <label class="form-label small fw-semibold text-secondary">REMITENTE / INSTITUCIÓN</label>
-                  <input type="text" id="campo-remitente" class="mac-input" placeholder="Nombre de la dependencia">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary">TITULAR / FIRMANTE</label>
+                    <input type="text" id="campo-titular" class="mac-input" placeholder="Nombre completo">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
+                    <input type="text" id="campo-area" class="mac-input" placeholder="Área emisora">
+                  </div>
                 </div>
                 
-                <div class="mb-4">
+                <div class="mb-3">
                   <label class="form-label small fw-semibold text-secondary">NÚMERO DE OFICIO</label>
                   <input type="text" id="campo-oficio" class="mac-input" placeholder="Ej: SEGOB/045/2026">
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                   <label class="form-label small fw-semibold text-secondary">ASUNTO / SÍNTESIS</label>
-                  <textarea id="campo-asunto" class="mac-input" rows="4" placeholder="Breve descripción..."></textarea>
+                  <textarea id="campo-asunto" class="mac-input" rows="3" placeholder="Breve descripción..."></textarea>
                 </div>
 
-                <div class="mb-4">
-                  <label class="form-label small fw-semibold text-secondary">NIVEL DE URGENCIA</label>
-                  <select id="campo-urgencia" class="mac-input">
-                    <option value="Normal">Normal</option>
-                    <option value="Alta">Alta / Prioritario</option>
-                  </select>
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary">TIPO DE DOCUMENTO</label>
+                    <select id="campo-tipo-doc" class="mac-input">
+                      <option value="Informativo">Informativo</option>
+                      <option value="Solicitud">Solicitud</option>
+                      <option value="Requerimiento">Requerimiento</option>
+                      <option value="Circular">Circular</option>
+                      <option value="Invitación">Invitación</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary">PRIORIDAD</label>
+                    <select id="campo-urgencia" class="mac-input">
+                      <option value="Baja">Baja</option>
+                      <option value="Normal" selected>Normal</option>
+                      <option value="Alta">Alta</option>
+                      <option value="Crítica">Crítica</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-check form-switch mb-4 ms-1">
+                  <input class="form-check-input" type="checkbox" role="switch" id="campo-requiere-respuesta">
+                  <label class="form-check-label small fw-medium" for="campo-requiere-respuesta">¿Requiere respuesta oficial?</label>
                 </div>
 
                 <div class="d-grid mt-2">
@@ -249,12 +274,18 @@
           
           <div class="mac-card text-start p-4 mb-5">
             <div class="row g-3">
-              <div class="col-4 text-secondary small fw-medium">REMITENTE</div>
-              <div id="res-remitente" class="col-8">---</div>
-              <div class="col-4 text-secondary small fw-medium">OFICIO</div>
+              <div class="col-4 text-secondary small fw-medium">TITULAR:</div>
+              <div id="res-titular" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">ÁREA:</div>
+              <div id="res-area" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">OFICIO:</div>
               <div id="res-oficio" class="col-8">---</div>
-              <div class="col-4 text-secondary small fw-medium">URGENCIA</div>
+              <div class="col-4 text-secondary small fw-medium">TIPO:</div>
+              <div id="res-tipo-doc" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">PRIORIDAD:</div>
               <div id="res-urgencia" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">RESPUESTA:</div>
+              <div id="res-requiere-respuesta" class="col-8">---</div>
             </div>
           </div>
 

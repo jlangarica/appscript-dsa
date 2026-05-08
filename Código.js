@@ -123,10 +123,13 @@ function llamarGeminiMultimodal(base64Data) {
   const systemPrompt = `
     Actúa como un experto analista documental gubernamental.
     Analiza con precisión el archivo PDF adjunto y extrae un objeto JSON estricto con:
-    - "remitente": Nombre completo de la dependencia o persona que envía el oficio.
+    - "titular": Nombre completo del funcionario que firma el oficio.
+    - "area": Dependencia, departamento o área que emite el documento.
     - "oficio": Número de oficio, folio o identificador oficial.
     - "asunto": Resumen ejecutivo del propósito (máximo 15 palabras).
-    - "urgencia": Selecciona entre "Alta" (si hay términos legales o plazos cortos) o "Normal".
+    - "tipo_doc": Clasifica entre "Informativo", "Solicitud", "Requerimiento", "Circular" o "Invitación".
+    - "urgencia": Clasifica entre "Baja", "Normal", "Alta" o "Crítica".
+    - "requiere_respuesta": Booleano (true/false) determinando si el contenido explícitamente solicita una respuesta o acción posterior.
     Responde ÚNICAMENTE con el objeto JSON, sin texto adicional.
   `;
 
@@ -208,14 +211,17 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     const sheet = ss.getSheets()[0]; // Usar la primera hoja si no sabemos el nombre
 
     const nuevaFila = [
-      new Date(), // Fecha de recepción
-      datosFinales.remitente,
-      datosFinales.oficio,
-      datosFinales.asunto,
-      datosFinales.urgencia,
-      "Recibido", // Estatus por defecto
-      fileUrl,
-      Session.getActiveUser().getEmail() // Auditoría: quién registró
+      new Date(), // A: Fecha de recepción
+      datosFinales.titular, // B: Titular
+      datosFinales.area,    // C: Área
+      datosFinales.oficio,  // D: Oficio
+      datosFinales.asunto,  // E: Asunto
+      datosFinales.tipo_doc, // F: Tipo de Documento
+      datosFinales.urgencia, // G: Prioridad
+      datosFinales.requiere_respuesta ? "SÍ" : "NO", // H: Requiere Respuesta
+      "Recibido", // I: Estatus
+      fileUrl,    // J: Enlace Drive
+      Session.getActiveUser().getEmail() // K: Auditoría
     ];
     
     sheet.appendRow(nuevaFila);

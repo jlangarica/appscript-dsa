@@ -112,9 +112,12 @@
 
       // Si es el paso 3, actualizar resumen
       if (numeroPaso === 3) {
-        document.getElementById('res-remitente').innerText = document.getElementById('campo-remitente').value || 'N/A';
+        document.getElementById('res-titular').innerText = document.getElementById('campo-titular').value || 'N/A';
+        document.getElementById('res-area').innerText = document.getElementById('campo-area').value || 'N/A';
         document.getElementById('res-oficio').innerText = document.getElementById('campo-oficio').value || 'N/A';
+        document.getElementById('res-tipo-doc').innerText = document.getElementById('campo-tipo-doc').value || 'N/A';
         document.getElementById('res-urgencia').innerText = document.getElementById('campo-urgencia').value || 'Normal';
+        document.getElementById('res-requiere-respuesta').innerText = document.getElementById('campo-requiere-respuesta').checked ? 'SÍ' : 'NO';
       }
     }
   }
@@ -240,19 +243,25 @@
   }
 
   function poblarFormulario(data) {
-    document.getElementById('campo-remitente').value = _escaparHTML(data.remitente) || '';
+    document.getElementById('campo-titular').value = _escaparHTML(data.titular) || '';
+    document.getElementById('campo-area').value = _escaparHTML(data.area) || '';
     document.getElementById('campo-oficio').value = _escaparHTML(data.oficio) || '';
     document.getElementById('campo-asunto').value = _escaparHTML(data.asunto) || '';
+    document.getElementById('campo-tipo-doc').value = data.tipo_doc || 'Informativo';
     document.getElementById('campo-urgencia').value = data.urgencia || 'Normal';
+    document.getElementById('campo-requiere-respuesta').checked = !!data.requiere_respuesta;
   }
 
   // --- CONFIRMACIÓN FINAL ---
   function registrarOficioFinal() {
     const data = {
-      remitente: document.getElementById('campo-remitente').value,
+      titular: document.getElementById('campo-titular').value,
+      area: document.getElementById('campo-area').value,
       oficio: document.getElementById('campo-oficio').value,
       asunto: document.getElementById('campo-asunto').value,
+      tipo_doc: document.getElementById('campo-tipo-doc').value,
       urgencia: document.getElementById('campo-urgencia').value,
+      requiere_respuesta: document.getElementById('campo-requiere-respuesta').checked,
       fileName: AppState.pdfFile.name
     };
 
