@@ -31,6 +31,19 @@ const CACHE_KEYS = {
   ESTADISTICAS: "dsa_stats_data"
 };
 
+// ===================================================================
+// 1.2 CATÁLOGO DE DISPOSICIÓN DOCUMENTAL (CADIDO)
+// Define los años de retención en Archivo de Trámite por Serie.
+// ===================================================================
+const CADIDO_VIGENCIAS = {
+  "1C.1 - Licitaciones Públicas": 5, 
+  "1C.2 - Contratos y Convenios": 5, 
+  "2C.1 - Expedientes de Personal": 2, 
+  "3C.1 - Correspondencia Oficial": 1, 
+  "4C.1 - Solicitudes de Transparencia": 2,
+  "99.9 - Otro / Sin Clasificar": 1
+};
+
 /**
  * Limpia el caché para forzar recarga en la siguiente consulta.
  */
@@ -142,16 +155,26 @@ function llamarGeminiMultimodal(base64Data) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
   
   const systemPrompt = `
-    Actúa como un experto analista documental gubernamental.
-    Analiza con precisión el archivo PDF adjunto y extrae un objeto JSON estricto con:
-    - "titular": Nombre completo del funcionario que firma el oficio.
-    - "area": Dependencia, departamento o área que emite el documento.
-    - "oficio": Número de oficio, folio o identificador oficial.
-    - "asunto": Resumen ejecutivo del propósito (máximo 15 palabras).
-    - "tipo_doc": Clasifica entre "Informativo", "Solicitud", "Requerimiento", "Circular" o "Invitación".
-    - "urgencia": Clasifica entre "Baja", "Normal", "Alta" o "Crítica".
-    - "requiere_respuesta": Booleano (true/false) determinando si el contenido explícitamente solicita una respuesta o acción posterior.
-    Responde ÚNICAMENTE con el objeto JSON, sin texto adicional.
+    Actúa como un experto analista documental y archivista gubernamental.
+    Analiza con precisión el archivo PDF adjunto y extrae un objeto JSON estricto.
+    
+    INSTRUCCIONES DE CLASIFICACIÓN (CGCA):
+    Clasifica el campo "tipo_doc" ÚNICAMENTE en una de las siguientes Series Documentales:
+    - "1C.1 - Licitaciones Públicas"
+    - "1C.2 - Contratos y Convenios"
+    - "2C.1 - Expedientes de Personal"
+    - "3C.1 - Correspondencia Oficial"
+    - "4C.1 - Solicitudes de Transparencia"
+    - "99.9 - Otro / Sin Clasificar"
+
+    Extrae:
+    - "titular": Nombre completo del funcionario que firma.
+    - "area": Sección o departamento productor (recursos humanos, jurídica, etc).
+    - "oficio": Número de oficio o folio.
+    - "asunto": Resumen ejecutivo (máximo 15 palabras).
+    - "tipo_doc": La Serie Documental exacta.
+    - "urgencia": "Baja", "Normal", "Alta" o "Crítica".
+    - "requiere_respuesta": Booleano.
   `;
 
   const payload = {
@@ -171,7 +194,17 @@ function llamarGeminiMultimodal(base64Data) {
           area: { type: "STRING" },
           oficio: { type: "STRING" },
           asunto: { type: "STRING" },
-          tipo_doc: { type: "STRING" },
+          tipo_doc: { 
+            type: "STRING", 
+            enum: [
+              "1C.1 - Licitaciones Públicas", 
+              "1C.2 - Contratos y Convenios", 
+              "2C.1 - Expedientes de Personal", 
+              "3C.1 - Correspondencia Oficial", 
+              "4C.1 - Solicitudes de Transparencia", 
+              "99.9 - Otro / Sin Clasificar"
+            ] 
+          },
           urgencia: { type: "STRING", enum: ["Baja", "Normal", "Alta", "Crítica"] },
           requiere_respuesta: { type: "BOOLEAN" }
         },
@@ -252,11 +285,21 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
       lock.waitLock(10000); 
 
       if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no configurado.");
-      
-      // Uso de Sheets API para inserción rápida (Opcional, appendRow es estable, 
-      // pero el rollback es la prioridad aquí)
       const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
       let sheet = ss.getSheetByName("Recibidos");
+      
+      // Inicializar cabeceras si es necesario (Tarea #1 Archivística)
+      if (!sheet) {
+        sheet = ss.insertSheet("Recibidos");
+        const headers = ["FECHA", "TITULAR", "SECCIÓN (ÁREA)", "OFICIO", "ASUNTO", "SERIE DOCUMENTAL (CGCA)", "AÑOS RETENCIÓN", "FECHA TRANSFERENCIA", "PRIORIDAD", "RESPUESTA", "ESTATUS", "URL", "AUDITORÍA"];
+        sheet.appendRow(headers);
+        sheet.getRange("1:1").setBackground("#1a365d").setFontColor("#ffffff").setFontWeight("bold");
+      }
+
+      // Cálculo de CADIDO (Tarea #2 Archivística)
+      const vigenciaAños = CADIDO_VIGENCIAS[datosFinales.tipo_doc] || 1;
+      const fechaTransferencia = new Date();
+      fechaTransferencia.setFullYear(fechaTransferencia.getFullYear() + vigenciaAños);
       
       const nuevaFila = [
         new Date(),
@@ -265,9 +308,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
         datosFinales.oficio,
         datosFinales.asunto,
         datosFinales.tipo_doc,
+        vigenciaAños,
+        fechaTransferencia,
         datosFinales.urgencia,
         datosFinales.requiere_respuesta ? "SÍ" : "NO",
-        "Recibido",
+        "Activo en Trámite", // Estatus Archivístico inicial
         fileUrl,
         Session.getActiveUser().getEmail()
       ];
@@ -321,7 +366,7 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
     // Uso de Sheets API Avanzada (Tarea #4) - Mucho más rápido que SpreadsheetApp
-    const range = 'Recibidos!A2:K';
+    const range = 'Recibidos!A2:M'; // Actualizado a 13 columnas (A-M)
     const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, range);
     const allData = response.values;
     
@@ -340,8 +385,8 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
         
         const matchArea = !area || String(row[2]) === area;
         const matchTipo = !tipo || String(row[5]) === tipo;
-        const matchPrioridad = !prioridad || String(row[6]) === prioridad;
-        const matchRespuesta = !respuesta || String(row[7]) === respuesta;
+        const matchPrioridad = !prioridad || String(row[8]) === prioridad;
+        const matchRespuesta = !respuesta || String(row[9]) === respuesta;
 
         return matchTexto && matchArea && matchTipo && matchPrioridad && matchRespuesta;
       });
@@ -365,11 +410,13 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
         oficio: String(row[3] || "N/A"),
         asunto: String(row[4] || "Sin asunto"),
         tipo_doc: String(row[5] || "N/A"),
-        urgencia: String(row[6] || "Normal"),
-        respuesta: String(row[7] || "NO"),
-        estatus: String(row[8] || "Recibido"),
-        url: String(row[9] || ""),
-        registrador: String(row[10] || "")
+        vigencia: String(row[6] || "1"),
+        transferencia: String(row[7] || "N/A"),
+        urgencia: String(row[8] || "Normal"),
+        respuesta: String(row[9] || "NO"),
+        estatus: String(row[10] || "Activo"),
+        url: String(row[11] || ""),
+        registrador: String(row[12] || "")
       };
     });
     
@@ -568,7 +615,7 @@ function obtenerEstadisticas() {
     if (!CONFIG.SHEET_ID_GOBIERNO) return { success: false, message: "ID no configurado." };
     
     // Sheets API para velocidad (Tarea #4)
-    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:K');
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:M');
     const rows = response.values;
 
     if (!rows || rows.length === 0) {
@@ -584,14 +631,12 @@ function obtenerEstadisticas() {
     let [total, pendientes, urgentes, registradosHoy] = [rows.length, 0, 0, 0];
 
     rows.forEach(row => {
-      const urgencia = row[6]; 
-      const estatus = row[8];  
+      const urgencia = row[8]; // Columna I
+      const estatus = row[10]; // Columna K
       const fecha = new Date(row[0]); 
 
-      if (estatus === "Pendiente" || estatus === "Recibido") pendientes++;
+      if (estatus === "Pendiente" || estatus === "Activo en Trámite") pendientes++;
       if (urgencia === "Alta" || urgencia === "Crítica") urgentes++;
-      // Nota: Aquí la comparación de fecha depende del formato en el Sheet
-      // pero para el dashboard mantenemos la lógica base.
       if (fecha >= hoy) registradosHoy++;
     });
 
@@ -602,7 +647,7 @@ function obtenerEstadisticas() {
         titular: String(row[1] || "N/A"),
         asunto: String(row[4] || "Sin asunto"),
         fecha: String(row[0] || "N/A"),
-        estatus: String(row[8] || "Recibido")
+        estatus: String(row[10] || "Activo")
       };
     });
 
@@ -650,6 +695,57 @@ function _verificarRateLimit(accion, limiteSegundos) {
     throw new Error(`Por favor espera ${limiteSegundos} segundos antes de realizar esta acción nuevamente.`);
   }
   cache.put(key, "locked", limiteSegundos);
+}
+
+/**
+ * CRON JOB: Revisa diariamente plazos de conservación (Tarea #3 Archivística).
+ */
+function auditarPlazosDeConservacion() {
+  try {
+    if (!CONFIG.SHEET_ID_GOBIERNO) return;
+    
+    const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, 'Recibidos!A2:M');
+    const rows = response.values;
+    if (!rows || rows.length === 0) return;
+
+    const hoy = new Date();
+    const expirados = [];
+
+    rows.forEach((row, index) => {
+      const fechaTransferencia = new Date(row[7]); // Columna H
+      const estatus = row[10]; // Columna K
+
+      if (estatus === "Activo en Trámite" && hoy >= fechaTransferencia) {
+        expirados.push({
+          oficio: row[3],
+          serie: row[5],
+          fecha: row[0],
+          fila: index + 2
+        });
+      }
+    });
+
+    if (expirados.length > 0) {
+      // Actualizar estatus en batch para eficiencia
+      expirados.forEach(e => {
+        const range = `Recibidos!K${e.fila}`;
+        Sheets.Spreadsheets.Values.update({ values: [["Vencido - Transferir"]] }, CONFIG.SHEET_ID_GOBIERNO, range, { valueInputOption: "RAW" });
+      });
+
+      // Notificar por Gmail
+      const listaHtml = expirados.map(o => `<li><b>${o.oficio}</b> (${o.serie})</li>`).join('');
+      const cuerpo = `<h3>Alerta de CADIDO</h3><p>Los siguientes documentos han vencido su plazo en Trámite:</p><ul>${listaHtml}</ul>`;
+      
+      GmailApp.sendEmail(Session.getActiveUser().getEmail(), "[DSA] Alerta de Transferencia Documental", "", {
+        htmlBody: cuerpo,
+        name: "Sistema de Archivos DSA"
+      });
+      
+      console.log(`Auditoría completada: ${expirados.length} documentos marcados.`);
+    }
+  } catch (e) {
+    console.error("Error en auditoría archivística:", e.toString());
+  }
 }
 
 /**
