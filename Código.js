@@ -187,6 +187,8 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     lock.waitLock(10000);
 
     // 1. Almacenamiento en Google Drive (Organización Dinámica: Año/Mes/Día)
+    if (!CONFIG.FOLDER_ID_OFICIOS) throw new Error("FOLDER_ID_OFICIOS no está configurado en las Propiedades del Script.");
+    
     const rootFolder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
     const now = new Date();
     
@@ -200,7 +202,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     const fileUrl = file.getUrl();
 
     // 2. Indexación en Google Sheets (Libro de Gobierno)
-    const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO).getActiveSheet();
+    if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("SHEET_ID_GOBIERNO no está configurado en las Propiedades del Script.");
+    
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+    const sheet = ss.getSheets()[0]; // Usar la primera hoja si no sabemos el nombre
+
     const nuevaFila = [
       new Date(), // Fecha de recepción
       datosFinales.remitente,
