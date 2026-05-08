@@ -11,28 +11,46 @@
     pdfFile: null,
     pdfBase64: null,
     extractedData: null,
-    isProcessing: false
+    isProcessing: false,
+    isDark: localStorage.getItem('dsa-theme') === 'dark'
   }, {
     set(target, prop, value) {
+      const old = target[prop];
       target[prop] = value;
-      actualizarUI(prop, value);
+      // Si el valor cambió, dispara la actualización de la UI
+      if (old !== value) _onStateChange(prop, value);
       return true;
     }
   });
 
-  // --- INICIALIZACIÓN ---
-  document.addEventListener('DOMContentLoaded', () => {
-    cambiarVista('v-dashboard');
-    initDragAndDrop();
-  });
+  /**
+   * Manejador centralizado de cambios de estado (Reactividad)
+   */
+  function _onStateChange(prop, value) {
+    if (prop === 'isDark') {
+      document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
+      localStorage.setItem('dsa-theme', value ? 'dark' : 'light');
+    }
+    
+    if (prop === 'isProcessing') {
+      // Bloquea los botones principales para evitar doble envío
+      document.querySelectorAll('.btn-primary, .btn-success, #pdf-input').forEach(el => el.disabled = value);
+      
+      // Si es un dropzone, añadir clase visual
+      const dropzone = document.getElementById('dropzone');
+      if (dropzone) dropzone.style.opacity = value ? '0.5' : '1';
+    }
 
-  // --- ENRUTADOR ---
-  function cambiarVista(idVista) {
+    if (prop === 'vistaActual') {
+      _actualizarNavegacion(value);
+    }
+  }
+
+  function _actualizarNavegacion(idVista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.add('d-none'));
     const target = document.getElementById(idVista);
     if (target) {
       target.classList.remove('d-none');
-      AppState.vistaActual = idVista;
       
       // Actualizar sidebar active state
       document.querySelectorAll('.sidebar .nav-link').forEach(link => {
@@ -42,6 +60,18 @@
         }
       });
     }
+  }
+
+
+  // --- INICIALIZACIÓN ---
+  document.addEventListener('DOMContentLoaded', () => {
+    cambiarVista('v-dashboard');
+    initDragAndDrop();
+  });
+
+  // --- ENRUTADOR ---
+  function cambiarVista(idVista) {
+    AppState.vistaActual = idVista;
   }
 
   // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
@@ -206,13 +236,31 @@
     cambiarPaso(1);
   }
 
-  // --- UI HELPERS ---
-  function actualizarUI(prop, value) {
-    // Aquí se podrían añadir vinculaciones dinámicas complejas
-    if (prop === 'isProcessing') {
-      const btn = document.querySelector('#btn-procesar');
-      if (btn) btn.disabled = value;
-    }
+  // --- UTILIDADES ---
+  
+  /**
+   * Escapa HTML nativo para evitar XSS.
+   */
+  function _escaparHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  /**
+   * Retrasa la ejecución de una función hasta que haya una pausa.
+   */
+  function _debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  function toggleTheme() {
+    AppState.isDark = !AppState.isDark;
   }
 
   function toggleLoading(show, message = "Procesando...") {

@@ -6,19 +6,42 @@
     --secondary: #3f37c9;
     --accent: #4895ef;
     --success: #4cc9f0;
+    --warning: #f72585;
     --dark: #1e1e2f;
     --light: #f8f9fa;
+    --bg: #f0f2f5;
+    --text: #2d3436;
+    --card-bg: #ffffff;
     --glass: rgba(255, 255, 255, 0.85);
     --sidebar-width: 280px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  [data-theme="dark"] {
+    --bg: #0f172a;
+    --text: #f1f5f9;
+    --card-bg: #1e293b;
+    --glass: rgba(30, 41, 59, 0.8);
+    --light: #1e293b;
+    --dark: #0f172a;
+  }
+
   body {
     font-family: 'Outfit', sans-serif;
-    background: #f0f2f5;
-    color: #2d3436;
+    background: var(--bg);
+    color: var(--text);
     overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
   }
+
+  /* Donut Chart SVG */
+  .donut-chart { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+  .donut-svg { transform: rotate(-90deg); }
+  .donut-segment { fill: none; stroke-width: 3.5; stroke-linecap: round; transition: stroke-dasharray 1s ease-in-out; }
+  .donut-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 1.2rem; }
+  .donut-segment-success { stroke: var(--success); }
+  .donut-segment-bg { stroke: rgba(0,0,0,0.05); [data-theme="dark"] & { stroke: rgba(255,255,255,0.05); } }
+
 
   /* Sidebar Premium */
   .sidebar {
@@ -88,7 +111,7 @@
 
   /* Dashboard Cards */
   .stats-card {
-    background: white;
+    background: var(--card-bg);
     border: none;
     border-radius: 20px;
     padding: 1.5rem;
@@ -113,11 +136,11 @@
 
   /* Dropzone */
   .dropzone {
-    border: 2px dashed #cbd5e0;
+    border: 2px dashed var(--accent);
     border-radius: 20px;
     padding: 4rem 2rem;
     text-align: center;
-    background: #fdfdfd;
+    background: var(--card-bg);
     transition: var(--transition);
     cursor: pointer;
   }
@@ -147,8 +170,9 @@
   .form-control, .form-select {
     border-radius: 12px;
     padding: 0.75rem 1rem;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: var(--bg);
+    color: var(--text);
   }
 
   .form-control:focus {
