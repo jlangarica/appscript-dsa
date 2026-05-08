@@ -382,15 +382,31 @@
         <i class="bi bi-info-circle me-2"></i> Generando respuesta para el oficio: <strong id="resp-oficio-ref">---</strong>
       </div>
 
-      <div class="mb-4">
-        <label class="form-label small fw-semibold text-secondary">DIRIGIDO A</label>
-        <div id="resp-destinatario" class="fw-bold">---</div>
-        <div id="resp-area" class="text-secondary small">---</div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-12">
+          <label class="form-label small fw-semibold text-secondary">TITULAR (DESTINATARIO)</label>
+          <input type="text" id="resp-titular" class="mac-input py-2">
+        </div>
+        <div class="col-md-12">
+          <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
+          <input type="text" id="resp-area-val" class="mac-input py-2">
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">REFERENCIA</label>
+          <input type="text" id="resp-oficio-val" class="mac-input py-2">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">ASUNTO</label>
+          <input type="text" id="resp-asunto-val" class="mac-input py-2">
+        </div>
       </div>
 
       <div class="flex-grow-1 mb-4">
         <label class="form-label small fw-semibold text-secondary">PUNTOS CLAVE PARA LA RESPUESTA</label>
-        <textarea id="resp-notas" class="mac-input h-100" style="resize: none;" placeholder="Escribe aquí los puntos principales o el borrador de tu respuesta..."></textarea>
+        <textarea id="resp-notas" class="mac-input h-100" style="resize: none;" placeholder="Escribe aquí los puntos principales..."></textarea>
       </div>
 
       <div class="d-grid gap-2">
