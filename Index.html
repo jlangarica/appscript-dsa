@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Oficialía de Partes Digital</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <i class="bi bi-shield-check"></i>
+      <span>Oficialía Digital</span>
+    </div>
+    
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link active" onclick="cambiarVista('v-dashboard')">
+          <i class="bi bi-grid-1x2-fill"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="cambiarVista('v-registro')">
+          <i class="bi bi-file-earmark-plus-fill"></i> Nuevo Registro
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="cambiarVista('v-archivo')">
+          <i class="bi bi-archive-fill"></i> Biblioteca
+        </a>
+      </li>
+      <li class="nav-item mt-auto">
+        <a class="nav-link" href="#" style="color: #ff7675;">
+          <i class="bi bi-box-arrow-right"></i> Salir
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    
+    <!-- VISTA: DASHBOARD -->
+    <div id="v-dashboard" class="vista">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Resumen General</h2>
+        <span class="badge bg-white text-dark p-2 shadow-sm">Hoy: <?= new Date().toLocaleDateString() ?></span>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-md-3">
+          <div class="stats-card">
+            <div class="text-muted small fw-bold mb-1">TOTAL REGISTROS</div>
+            <div class="h3 fw-bold mb-0">1,284</div>
+            <div class="text-success small mt-2"><i class="bi bi-arrow-up"></i> +12% vs mes anterior</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <div class="text-muted small fw-bold mb-1">PENDIENTES</div>
+            <div class="h3 fw-bold mb-0 text-warning">24</div>
+            <div class="text-muted small mt-2">Por validar hoy</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <div class="text-muted small fw-bold mb-1">URGENTES</div>
+            <div class="h3 fw-bold mb-0 text-danger">5</div>
+            <div class="text-muted small mt-2">Prioridad alta</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <div class="text-muted small fw-bold mb-1">TIEMPO PROMEDIO</div>
+            <div class="h3 fw-bold mb-0">4.2 min</div>
+            <div class="text-primary small mt-2">Optimizado con IA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card p-4">
+        <h5 class="fw-bold mb-3">Actividad Reciente</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Folio</th>
+                <th>Remitente</th>
+                <th>Asunto</th>
+                <th>Fecha</th>
+                <th>Estatus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="fw-bold">FOL-9821</span></td>
+                <td>Poder Judicial</td>
+                <td>Amparo Directo 45/2026</td>
+                <td>Hace 10 min</td>
+                <td><span class="badge bg-success">Registrado</span></td>
+              </tr>
+              <tr>
+                <td><span class="fw-bold">FOL-9820</span></td>
+                <td>Tesorería Municipal</td>
+                <td>Reporte de Ingresos Q1</td>
+                <td>Hace 1 hora</td>
+                <td><span class="badge bg-success">Registrado</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA: REGISTRO -->
+    <div id="v-registro" class="vista d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="fw-bold mb-0">Registro de Nuevo Oficio</h2>
+          <p class="text-muted">Digitalización y extracción de metadatos inteligente</p>
+        </div>
+        <div class="stepper d-flex gap-2">
+          <span class="badge rounded-pill bg-primary px-3">1. Subir</span>
+          <span class="badge rounded-pill bg-light text-muted px-3 border">2. Validar</span>
+          <span class="badge rounded-pill bg-light text-muted px-3 border">3. Confirmar</span>
+        </div>
+      </div>
+
+      <!-- PASO 1: SUBIR -->
+      <div id="paso-1" class="paso">
+        <div class="paso-container text-center">
+          <div class="dropzone mb-4" id="dropzone">
+            <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 4rem;"></i>
+            <h4 class="fw-bold mt-3">Arrastra tu PDF aquí</h4>
+            <p class="text-muted">O haz clic para seleccionar desde tu computadora</p>
+            <input type="file" id="pdf-input" class="d-none" accept="application/pdf">
+          </div>
+          <div class="alert alert-info border-0 shadow-sm d-inline-block px-4">
+            <i class="bi bi-info-circle-fill me-2"></i> Se recomienda resolución de <strong>300 DPI</strong> para mejor precisión del OCR.
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: VALIDAR (SPLIT VIEW) -->
+      <div id="paso-2" class="paso d-none">
+        <div class="row g-4">
+          <!-- Columna Izquierda: Visor -->
+          <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+              <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <span class="small fw-bold"><i class="bi bi-file-pdf me-2"></i> VISTA PREVIA DEL DOCUMENTO</span>
+                <button class="btn btn-sm btn-outline-light border-0" onclick="cambiarPaso(1)"><i class="bi bi-arrow-left"></i> Cambiar archivo</button>
+              </div>
+              <iframe id="pdf-viewer" class="visor-pdf"></iframe>
+            </div>
+          </div>
+          
+          <!-- Columna Derecha: Formulario IA -->
+          <div class="col-lg-5">
+            <div class="paso-container h-100">
+              <div class="d-flex align-items-center gap-2 mb-4">
+                <div class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
+                  <i class="bi bi-robot"></i>
+                </div>
+                <h5 class="fw-bold mb-0">Datos Extraídos por IA</h5>
+              </div>
+
+              <form id="form-datos">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted">REMITENTE / INSTITUCIÓN</label>
+                  <input type="text" id="campo-remitente" class="form-control" placeholder="Nombre de la dependencia">
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted">NÚMERO DE OFICIO</label>
+                  <input type="text" id="campo-oficio" class="form-control" placeholder="Ej: SEGOB/045/2026">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted">ASUNTO / SÍNTESIS</label>
+                  <textarea id="campo-asunto" class="form-control" rows="4" placeholder="Breve descripción del contenido"></textarea>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label small fw-bold text-muted">NIVEL DE URGENCIA</label>
+                  <select id="campo-urgencia" class="form-select">
+                    <option value="Normal">🟢 Normal</option>
+                    <option value="Alta">🔴 Alta / Prioritario</option>
+                  </select>
+                </div>
+
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-primary" onclick="cambiarPaso(3)">
+                    Revisar y Continuar <i class="bi bi-arrow-right ms-2"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: CONFIRMAR -->
+      <div id="paso-3" class="paso d-none">
+        <div class="paso-container text-center max-w-600 mx-auto">
+          <div class="mb-4">
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+          </div>
+          <h3 class="fw-bold">¿Todo correcto?</h3>
+          <p class="text-muted mb-4">Al confirmar, el documento se almacenará en Google Drive y se generará el folio oficial en el Libro de Gobierno.</p>
+          
+          <div class="card bg-light border-0 text-start p-4 mb-4 rounded-4">
+            <div class="row">
+              <div class="col-4 fw-bold text-muted small">REMITENTE:</div>
+              <div id="res-remitente" class="col-8 mb-2">---</div>
+              <div class="col-4 fw-bold text-muted small">OFICIO:</div>
+              <div id="res-oficio" class="col-8 mb-2">---</div>
+              <div class="col-4 fw-bold text-muted small">URGENCIA:</div>
+              <div id="res-urgencia" class="col-8">---</div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-outline-secondary" onclick="cambiarPaso(2)">Regresar a editar</button>
+            <button class="btn btn-success px-5" onclick="registrarOficioFinal()">Confirmar y Registrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA: ARCHIVO -->
+    <div id="v-archivo" class="vista d-none">
+      <h2 class="fw-bold mb-4">Biblioteca de Expedientes</h2>
+      <div class="glass-card p-5 text-center">
+        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+        <h4 class="mt-3">Buscador Histórico</h4>
+        <p class="text-muted">Próximamente: Filtros avanzados por fecha, remitente y contenido OCR.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- LOADER GLOBAL -->
+  <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+    <div class="loader-text h5">Procesando...</div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <?!= include('Scripts'); ?>
+</body>
+</html>
