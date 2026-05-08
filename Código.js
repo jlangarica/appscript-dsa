@@ -173,7 +173,7 @@ function llamarGeminiMultimodal(base64Data) {
 }
 
 // ===================================================================
-// 4. PERSISTENCIA Y REGISTRO (Google Drive & Sheets)
+// 4. PERSISTENCIA Y REGISTRO (Google Drive & Sheets - Oficialía)
 // ===================================================================
 
 /**
@@ -234,7 +234,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
 
     return { 
       success: true, 
-      message: "Oficio registrado correctamente en el Libro de Gobierno.",
+      message: "Oficio registrado correctamente en la Oficialía.",
       folio: folioGenerado
     };
   } catch (error) {
@@ -247,7 +247,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
 }
 
 /**
- * Obtiene todos los registros del Libro de Gobierno para la Biblioteca.
+ * Obtiene todos los registros de la Oficialía para la Biblioteca.
  * @return {Object} Lista de registros formateada.
  */
 function obtenerRegistros() {
