@@ -340,12 +340,12 @@ function generarRespuestaOficio(datos) {
     
     const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
     
-    body.replaceText("{{FECHA}}", hoy);
-    body.replaceText("{{TITULAR}}", datos.titular);
-    body.replaceText("{{AREA}}", datos.area);
-    body.replaceText("{{ASUNTO}}", datos.asunto);
-    body.replaceText("{{REFERENCIA}}", datos.oficio);
-    body.replaceText("{{RESPUESTA}}", contenidoFinal);
+    body.replaceText("\\{\\{FECHA\\}\\}", hoy);
+    body.replaceText("\\{\\{TITULAR\\}\\}", datos.titular);
+    body.replaceText("\\{\\{AREA\\}\\}", datos.area);
+    body.replaceText("\\{\\{ASUNTO\\}\\}", datos.asunto);
+    body.replaceText("\\{\\{REFERENCIA\\}\\}", datos.oficio);
+    body.replaceText("\\{\\{RESPUESTA\\}\\}", contenidoFinal);
     
     doc.saveAndClose();
 
