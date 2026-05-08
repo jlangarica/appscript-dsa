@@ -73,6 +73,9 @@
     // Aplicar tema inicial
     if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
 
+    // Cargar datos iniciales
+    cargarEstadisticasInicio();
+
     // Escuchar búsqueda en biblioteca
     const searchInput = document.getElementById('filtro-texto');
     if (searchInput) {
@@ -97,6 +100,7 @@
   function cambiarVista(idVista) {
     AppState.vistaActual = idVista;
     if (idVista === 'v-archivo') cargarBiblioteca();
+    if (idVista === 'v-dashboard') cargarEstadisticasInicio();
   }
 
   // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
@@ -309,6 +313,46 @@
     document.getElementById('form-datos').reset();
     document.getElementById('pdf-viewer').src = 'about:blank';
     cambiarPaso(1);
+  }
+
+  // --- GESTOR DE INICIO (DASHBOARD) ---
+
+  function cargarEstadisticasInicio() {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.success) {
+          const d = res.data;
+          document.getElementById('stat-total').innerText = d.total || 0;
+          document.getElementById('stat-pendientes').innerText = d.pendientes || 0;
+          document.getElementById('stat-urgentes').innerText = d.urgentes || 0;
+          document.getElementById('stat-hoy').innerText = d.registradosHoy || 0;
+          
+          _renderizarRecientes(d.recientes);
+        }
+      })
+      .obtenerEstadisticas();
+  }
+
+  function _renderizarRecientes(recientes) {
+    const tbody = document.getElementById('tabla-recientes-body');
+    if (!tbody) return;
+
+    if (!recientes || recientes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-secondary">No hay actividad reciente.</td></tr>';
+      return;
+    }
+
+    const html = recientes.map(r => `
+      <tr>
+        <td class="ps-4 fw-medium">${r.folio}</td>
+        <td class="small">${_escaparHTML(r.titular)}</td>
+        <td class="small text-secondary text-truncate" style="max-width: 150px;">${_escaparHTML(r.asunto)}</td>
+        <td class="small text-secondary">${new Date(r.fecha).toLocaleDateString()}</td>
+        <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">${r.estatus}</span></td>
+      </tr>
+    `).join('');
+
+    tbody.innerHTML = html;
   }
 
   // --- GESTOR DE BIBLIOTECA ---
