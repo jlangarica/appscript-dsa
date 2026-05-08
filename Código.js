@@ -1,6 +1,6 @@
 /**
- * OFICIALÍA DE PARTES DIGITAL - BACKEND CORE
- * Arquitectura: Apps Script + Document AI + Gemini (Zero-Cost)
+ * OFICIALÍA DE PARTES DIGITAL - BACKEND CORE (Propuesta 4: Monolito Gemini)
+ * Arquitectura: Multimodal Gemini (OCR + Razonamiento en un solo paso)
  * @author Antigravity AI
  */
 
@@ -10,26 +10,21 @@
 const getProp = (key) => PropertiesService.getScriptProperties().getProperty(key);
 
 const CONFIG = {
-  // Document AI (Configurado vía Script Properties)
-  GCP_PROJECT_ID: getProp("GCP_PROJECT_ID"),
-  DOC_AI_LOCATION: getProp("DOC_AI_LOCATION") || "us",
-  DOC_AI_PROCESSOR_ID: getProp("DOC_AI_PROCESSOR_ID"),
-  
-  // IDs de Google Workspace
+  // IDs de Google Workspace (Configurado vía Script Properties)
   FOLDER_ID_OFICIOS: getProp("FOLDER_ID_OFICIOS"),
   SHEET_ID_GOBIERNO: getProp("SHEET_ID_GOBIERNO"),
   
-  // API Key de Gemini
+  // Configuración de Gemini (Google AI Studio - Zero Cost)
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
   GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite"
 };
 
 // ===================================================================
-// 2. CONTROLADOR WEB (Vistas)
+// 2. CONTROLADOR WEB (Vistas SPA)
 // ===================================================================
 
 /**
- * Renderiza la interfaz principal.
+ * Renderiza la interfaz principal del sistema.
  * @return {HtmlService.HtmlOutput}
  */
 function doGet() {
@@ -41,35 +36,31 @@ function doGet() {
 }
 
 /**
- * Inyecta archivos HTML/CSS/JS en la plantilla.
- * @param {string} filename Nombre del archivo.
- * @return {string} Contenido HTML.
+ * Inyecta componentes HTML/CSS/JS en la plantilla principal.
+ * @param {string} filename Nombre del archivo .html
+ * @return {string} Contenido HTML procesado.
  */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 // ===================================================================
-// 3. FLUJO DE PROCESAMIENTO (OCR + IA)
+// 3. PROCESAMIENTO INTELIGENTE (Gemini Multimodal)
 // ===================================================================
 
 /**
- * Procesa el PDF: OCR -> Gemini -> JSON Estructurado.
- * @param {string} base64Data PDF en base64.
- * @param {string} fileName Nombre del archivo.
- * @return {Object} Respuesta con datos o error.
+ * Procesa el PDF nativo: OCR y Extracción de metadatos en un solo paso.
+ * @param {string} base64Data PDF codificado en base64.
+ * @param {string} fileName Nombre original del archivo.
+ * @return {Object} Datos estructurados o mensaje de error.
  */
 function procesarDocumento(base64Data, fileName) {
   try {
-    const decodedData = Utilities.base64Decode(base64Data);
-    const pdfBlob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
+    // Validación de entrada
+    if (!base64Data) throw new Error("No se recibió contenido del archivo.");
 
-    // Paso 1: OCR Forense (Document AI)
-    const textoCrudo = llamarDocumentAI(pdfBlob);
-    if (!textoCrudo) throw new Error("Document AI no extrajo texto.");
-
-    // Paso 2: Inferencia con Gemini
-    const jsonEstructurado = llamarGemini(textoCrudo);
+    // Paso único: Extracción Multimodal con Gemini
+    const jsonEstructurado = llamarGeminiMultimodal(base64Data);
 
     return {
       success: true,
@@ -77,69 +68,41 @@ function procesarDocumento(base64Data, fileName) {
     };
   } catch (error) {
     console.error("Error en procesarDocumento:", error);
-    return { success: false, message: error.toString() };
+    return { success: false, message: "Fallo en IA: " + error.toString() };
   }
 }
 
 /**
- * Llama a Google Cloud Document AI.
- * @param {Blob} pdfBlob El archivo a procesar.
- * @return {string} Texto extraído.
+ * Realiza la llamada a la API de Gemini enviando el PDF como inline_data.
+ * @param {string} base64Data PDF en base64.
+ * @return {Object} Objeto JSON extraído del documento.
  * @private
  */
-function llamarDocumentAI(pdfBlob) {
-  if (!CONFIG.GCP_PROJECT_ID || !CONFIG.DOC_AI_PROCESSOR_ID) {
-    throw new Error("Configuración incompleta: Faltan IDs de Document AI en Properties.");
-  }
+function llamarGeminiMultimodal(base64Data) {
+  if (!CONFIG.GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en Script Properties.");
 
-  const endpoint = `https://${CONFIG.DOC_AI_LOCATION}-documentai.googleapis.com/v1/projects/${CONFIG.GCP_PROJECT_ID}/locations/${CONFIG.DOC_AI_LOCATION}/processors/${CONFIG.DOC_AI_PROCESSOR_ID}:process`;
-  
-  const payload = {
-    "rawDocument": {
-      "content": Utilities.base64Encode(pdfBlob.getBytes()),
-      "mimeType": "application/pdf"
-    }
-  };
-
-  const options = {
-    "method": "post",
-    "contentType": "application/json",
-    "headers": { "Authorization": "Bearer " + ScriptApp.getOAuthToken() },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
-
-  const response = UrlFetchApp.fetch(endpoint, options);
-  const json = JSON.parse(response.getContentText());
-
-  if (json.error) throw new Error(`Document AI: ${json.error.message}`);
-  return json.document.text;
-}
-
-/**
- * Llama a la API de Gemini para procesamiento de texto.
- * @param {string} textoExtraido Texto obtenido del OCR.
- * @return {Object} JSON estructurado.
- * @private
- */
-function llamarGemini(textoExtraido) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
   
   const systemPrompt = `
-    Eres un experto analista documental gubernamental.
-    Extrae un objeto JSON del siguiente texto:
-    - "remitente": Dependencia emisora.
-    - "oficio": Número de oficio/folio.
-    - "asunto": Resumen breve (máx 15 palabras).
-    - "urgencia": "Alta" o "Normal".
-    Responde ÚNICAMENTE con el JSON.
+    Actúa como un experto analista documental gubernamental.
+    Analiza con precisión el archivo PDF adjunto y extrae un objeto JSON estricto con:
+    - "remitente": Nombre completo de la dependencia o persona que envía el oficio.
+    - "oficio": Número de oficio, folio o identificador oficial.
+    - "asunto": Resumen ejecutivo del propósito (máximo 15 palabras).
+    - "urgencia": Selecciona entre "Alta" (si hay términos legales o plazos cortos) o "Normal".
+    Responde ÚNICAMENTE con el objeto JSON, sin texto adicional.
   `;
 
   const payload = {
     "contents": [{
       "parts": [
         { "text": systemPrompt },
-        { "text": "\n--- TEXTO OCR ---\n" + textoExtraido }
+        { 
+          "inline_data": { 
+            "mime_type": "application/pdf", 
+            "data": base64Data 
+          } 
+        }
       ]
     }],
     "generationConfig": {
@@ -156,60 +119,68 @@ function llamarGemini(textoExtraido) {
   };
 
   const response = UrlFetchApp.fetch(endpoint, options);
-  const result = JSON.parse(response.getContentText());
+  const responseText = response.getContentText();
+  const result = JSON.parse(responseText);
 
   if (result.error) throw new Error(`Gemini: ${result.error.message}`);
+  
+  if (!result.candidates || !result.candidates[0].content) {
+    throw new Error("El modelo no generó una respuesta. Verifica cuotas y formato del PDF.");
+  }
+
   const jsonString = result.candidates[0].content.parts[0].text;
   return JSON.parse(jsonString);
 }
 
 // ===================================================================
-// 4. REGISTRO FINAL (Drive + Sheets)
+// 4. PERSISTENCIA Y REGISTRO (Google Drive & Sheets)
 // ===================================================================
 
 /**
- * Persiste el archivo y los datos en el ecosistema Workspace.
- * @param {Object} datosFinales Datos validados.
- * @param {string} base64Data PDF en base64.
- * @param {string} fileName Nombre del archivo.
- * @return {Object} Status del registro.
+ * Guarda el archivo en Drive y registra los datos en la Hoja de Cálculo.
+ * @param {Object} datosFinales Metadatos validados por el usuario.
+ * @param {string} base64Data PDF original.
+ * @param {string} fileName Nombre para el archivo en Drive.
+ * @return {Object} Status de la operación y folio generado.
  */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   const lock = LockService.getScriptLock();
   try {
+    // Bloqueo atómico por 10 segundos para evitar colisiones
     lock.waitLock(10000);
 
-    // 1. Guardar en Drive
+    // 1. Almacenamiento en Google Drive
     const folder = DriveApp.getFolderById(CONFIG.FOLDER_ID_OFICIOS);
     const decodedData = Utilities.base64Decode(base64Data);
     const blob = Utilities.newBlob(decodedData, MimeType.PDF, fileName);
     const file = folder.createFile(blob);
     const fileUrl = file.getUrl();
 
-    // 2. Registrar en Sheets
+    // 2. Indexación en Google Sheets (Libro de Gobierno)
     const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO).getActiveSheet();
     const nuevaFila = [
-      new Date(),
+      new Date(), // Fecha de recepción
       datosFinales.remitente,
       datosFinales.oficio,
       datosFinales.asunto,
       datosFinales.urgencia,
-      "Recibido",
+      "Recibido", // Estatus por defecto
       fileUrl,
-      Session.getActiveUser().getEmail()
+      Session.getActiveUser().getEmail() // Auditoría: quién registró
     ];
     
     sheet.appendRow(nuevaFila);
 
     return { 
       success: true, 
-      message: "Registro completado con éxito.",
+      message: "Oficio registrado correctamente en el Libro de Gobierno.",
       folio: "FOL-" + Date.now().toString().slice(-4)
     };
   } catch (error) {
-    console.error("Error al registrar:", error);
-    return { success: false, message: error.toString() };
+    console.error("Error en registro final:", error);
+    return { success: false, message: "Error al registrar: " + error.toString() };
   } finally {
+    // Siempre liberar el candado
     lock.releaseLock();
   }
 }
