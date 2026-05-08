@@ -381,6 +381,7 @@
       })
       .withFailureHandler(err => {
         toggleLoading(false);
+        console.error("Error de red/GAS en cargarBiblioteca:", err);
         showToast('Error de Servidor', err.message, 'danger');
       })
       .obtenerRegistros();
@@ -444,7 +445,7 @@
 
       return `
         <tr>
-          <td class="ps-4 small text-secondary">${new Date(reg.fecha).toLocaleDateString()}</td>
+          <td class="ps-4 small text-secondary">${reg.fecha}</td>
           <td class="fw-medium">${_escaparHTML(reg.titular)}</td>
           <td class="small text-secondary">${_escaparHTML(reg.area)}</td>
           <td class="small font-monospace">${_escaparHTML(reg.oficio)}</td>

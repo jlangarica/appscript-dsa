@@ -264,24 +264,30 @@ function obtenerRegistros() {
     const rows = data.slice(1).reverse(); // Los más recientes primero
     
     const registros = rows.map((row, index) => {
+      let fechaStr = "N/A";
+      try {
+        fechaStr = row[0] instanceof Date ? row[0].toLocaleDateString() : String(row[0] || "N/A");
+      } catch(e) {}
+
       return {
-        fecha: row[0],
-        titular: row[1],
-        area: row[2],
-        oficio: row[3],
-        asunto: row[4],
-        tipo_doc: row[5],
-        urgencia: row[6],
-        respuesta: row[7],
-        estatus: row[8],
-        url: row[9],
-        registrador: row[10]
+        fecha: fechaStr,
+        titular: String(row[1] || "N/A"),
+        area: String(row[2] || "N/A"),
+        oficio: String(row[3] || "N/A"),
+        asunto: String(row[4] || "Sin asunto"),
+        tipo_doc: String(row[5] || "N/A"),
+        urgencia: String(row[6] || "Normal"),
+        respuesta: String(row[7] || "NO"),
+        estatus: String(row[8] || "Recibido"),
+        url: String(row[9] || ""),
+        registrador: String(row[10] || "")
       };
     });
     
+    console.log(`Biblioteca: ${registros.length} registros listos.`);
     return { success: true, data: registros };
   } catch (error) {
-    _log("ERROR", "obtenerRegistros", error.toString());
+    console.error("Error en obtenerRegistros:", error.toString());
     return { success: false, message: error.toString() };
   }
 }
