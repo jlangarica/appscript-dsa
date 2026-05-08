@@ -136,7 +136,7 @@
         AppState.isProcessing = false;
         toggleLoading(false);
       })
-      .processOCR(payload);
+      .procesarDocumento(AppState.pdfBase64, AppState.pdfFile.name);
   }
 
   function poblarFormulario(data) {
@@ -161,7 +161,7 @@
     google.script.run
       .withSuccessHandler(res => {
         if (res.success) {
-          showToast('Registrado', `Folio generado: ${res.folio}`, 'success');
+          showToast('Registrado', res.message, 'success');
           resetForm();
           cambiarVista('v-dashboard');
         } else {
@@ -173,7 +173,7 @@
         showToast('Error', err.message, 'danger');
         toggleLoading(false);
       })
-      .registrarOficio(data);
+      .registrarOficioFinalizado(data, AppState.pdfBase64, AppState.pdfFile.name);
   }
 
   function resetForm() {
