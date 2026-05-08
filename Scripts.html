@@ -641,7 +641,7 @@
     const loader = document.getElementById('global-loader');
     if (loader) {
       loader.classList.toggle('d-none', !show);
-      const msgEl = loader.querySelector('.loader-text');
+      const msgEl = document.getElementById('loader-message');
       const subMsgEl = document.getElementById('loader-submessage');
       const progressBar = document.getElementById('loader-progress');
       
