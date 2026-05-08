@@ -31,7 +31,25 @@
     };
   })();
 
-  // --- CAPA DE ESTADO (Reactive Proxy) ---
+const DSA_App = (function() {
+  /**
+   * --- EVENT BUS (Pub/Sub Pattern - Tarea #4) ---
+   * Descentraliza la lógica de respuesta ante cambios de estado.
+   */
+  const EventBus = {
+    listeners: {},
+    on(event, callback) {
+      if (!this.listeners[event]) this.listeners[event] = [];
+      this.listeners[event].push(callback);
+    },
+    emit(event, data) {
+      if (this.listeners[event]) this.listeners[event].forEach(cb => cb(data));
+    }
+  };
+
+  /**
+   * --- CAPA DE ESTADO (Reactive Proxy) ---
+   */
   const AppState = new Proxy({
     vistaActual: 'v-dashboard',
     pasoActual: 1,
@@ -48,59 +66,53 @@
   }, {
     set(target, prop, value) {
       const old = target[prop];
-      target[prop] = value;
-      // Si el valor cambió, dispara la actualización de la UI
-      if (old !== value) _onStateChange(prop, value);
+      if (old !== value) {
+        target[prop] = value;
+        EventBus.emit(`change:${prop}`, value);
+      }
       return true;
     }
   });
 
   /**
-   * Manejador centralizado de cambios de estado (Reactividad)
+   * --- SUSCRIPCIONES REACTIVAS (Tarea #4) ---
+   * Reemplaza la "God Function" _onStateChange con observadores.
    */
-  function _onStateChange(prop, value) {
-    if (prop === 'isDark') {
-      document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
-      localStorage.setItem('dsa-theme', value ? 'dark' : 'light');
-      
-      // Animar icono
-      const icon = document.getElementById('theme-icon');
-      if (icon) {
-        if (value) {
-          icon.classList.replace('bi-moon-stars', 'bi-sun');
-          icon.style.transform = 'rotate(180deg)';
-        } else {
-          icon.classList.replace('bi-sun', 'bi-moon-stars');
-          icon.style.transform = 'rotate(0deg)';
-        }
+  EventBus.on('change:isDark', (value) => {
+    document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
+    localStorage.setItem('dsa-theme', value ? 'dark' : 'light');
+    const icon = document.getElementById('theme-icon');
+    if (icon) {
+      if (value) {
+        icon.classList.replace('bi-moon-stars', 'bi-sun');
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        icon.classList.replace('bi-sun', 'bi-moon-stars');
+        icon.style.transform = 'rotate(0deg)';
       }
     }
+  });
 
-    if (prop === 'isSidebarCollapsed') {
-      const sidebar = document.querySelector('.mac-sidebar');
-      const icon = document.getElementById('sidebar-icon');
-      const label = document.querySelector('[onclick="toggleSidebar()"] span');
-      
-      if (sidebar) sidebar.classList.toggle('collapsed', value);
-      if (icon) icon.classList.toggle('bi-layout-sidebar-reverse', value);
-      if (label) label.innerText = value ? 'Expandir' : 'Contraer';
-      localStorage.setItem('dsa-sidebar', value);
-    }
-    
-    if (prop === 'isProcessing') {
-      // Bloquea los botones principales para evitar doble envío
-      document.querySelectorAll('.btn-primary, .btn-success, #pdf-input').forEach(el => el.disabled = value);
-      
-      // Si es un dropzone, añadir clase visual
-      const dropzone = document.getElementById('dropzone');
-      if (dropzone) dropzone.style.opacity = value ? '0.5' : '1';
-    }
+  EventBus.on('change:isSidebarCollapsed', (value) => {
+    const sidebar = document.querySelector('.mac-sidebar');
+    const icon = document.getElementById('sidebar-icon');
+    const label = document.querySelector('[onclick="DSA_App.toggleSidebar()"] span');
+    if (sidebar) sidebar.classList.toggle('collapsed', value);
+    if (icon) icon.classList.toggle('bi-layout-sidebar-reverse', value);
+    if (label) label.innerText = value ? 'Expandir' : 'Contraer';
+    localStorage.setItem('dsa-sidebar', value);
+  });
 
-    if (prop === 'vistaActual') {
-      _actualizarNavegacion(value);
-      _actualizarBreadcrumb(value);
-    }
-  }
+  EventBus.on('change:isProcessing', (value) => {
+    document.querySelectorAll('.btn-primary, .btn-success, #pdf-input').forEach(el => el.disabled = value);
+    const dropzone = document.getElementById('dropzone');
+    if (dropzone) dropzone.style.opacity = value ? '0.5' : '1';
+  });
+
+  EventBus.on('change:vistaActual', (value) => {
+    _actualizarNavegacion(value);
+    _actualizarBreadcrumb(value);
+  });
 
   function _actualizarBreadcrumb(idVista) {
     const breadcrumb = document.getElementById('app-breadcrumb');
@@ -1007,7 +1019,7 @@
       const fechaHumanizada = _formatearTiempoRelativo(reg.fecha);
 
       return `
-        <tr onclick="mostrarDetalleOficio(${index})" data-index="${index}" style="cursor: pointer;">
+        <tr data-index="${index}" style="cursor: pointer;">
           <td class="ps-4 small text-secondary tabular-nums" data-tooltip="${reg.fecha}">${fechaHumanizada}</td>
           <td>
             <div class="cell-group" data-tooltip="${_escaparHTML(reg.asunto)}">
@@ -1182,12 +1194,29 @@
     }, 5000);
   }
 
-  function _detectarOS() {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    if (!isMac) {
-      document.querySelectorAll('.mac-kbd').forEach(el => {
-        el.innerText = 'Ctrl+K';
-      });
     }
   }
-</script>
+
+  // --- API PÚBLICA (Exposición controlada - Tarea #2) ---
+  return {
+    init,
+    cambiarVista,
+    toggleTheme,
+    toggleSidebar,
+    seleccionarChip,
+    aplicarFiltrosBiblioteca,
+    limpiarFiltrosYBuscar,
+    cargarSiguientePagina,
+    cerrarDetalle,
+    mostrarDetalleOficio,
+    abrirPanelRespuesta,
+    cerrarPanelRespuesta,
+    ejecutarGeneracion,
+    registrarOficioFinal,
+    cambiarPaso,
+    validarYContinuar
+  };
+})();
+
+// Punto de entrada único
+document.addEventListener('DOMContentLoaded', DSA_App.init);
