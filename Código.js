@@ -5,20 +5,22 @@
  */
 
 // ===================================================================
-// 1. CONFIGURACIÓN DEL SISTEMA
+// 1. CONFIGURACIÓN DEL SISTEMA (Seguridad: Regla #5)
 // ===================================================================
+const getProp = (key) => PropertiesService.getScriptProperties().getProperty(key);
+
 const CONFIG = {
-  // Document AI (Reemplaza con tus datos reales)
-  GCP_PROJECT_ID: "644299184353",
+  // Document AI
+  GCP_PROJECT_ID: getProp("GCP_PROJECT_ID") || "644299184353",
   DOC_AI_LOCATION: "us",
-  DOC_AI_PROCESSOR_ID: "5d99727cf9364e11",
+  DOC_AI_PROCESSOR_ID: getProp("DOC_AI_PROCESSOR_ID"),
   
-  // IDs de Google Workspace (Reemplaza con los tuyos)
-  FOLDER_ID_OFICIOS: "AQUI_TU_ID_DE_CARPETA_DRIVE",
-  SHEET_ID_GOBIERNO: "AQUI_TU_ID_DE_GOOGLE_SHEET",
+  // IDs de Google Workspace
+  FOLDER_ID_OFICIOS: getProp("FOLDER_ID_OFICIOS"),
+  SHEET_ID_GOBIERNO: getProp("SHEET_ID_GOBIERNO"),
   
-  // API Key de Gemini (Google AI Studio)
-  GEMINI_API_KEY: "AQUI_TU_API_KEY_DE_GEMINI"
+  // API Key de Gemini
+  GEMINI_API_KEY: getProp("GEMINI_API_KEY")
 };
 
 // ===================================================================

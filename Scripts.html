@@ -93,6 +93,13 @@
   }
 
   function handleFile(file) {
+    // Validación de Tamaño (10MB límite para evitar errores de payload en GAS)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      showToast('Archivo demasiado grande', 'El PDF supera los 10MB. Por favor optimiza el archivo antes de subirlo.', 'warning');
+      return;
+    }
+
     AppState.pdfFile = file;
     
     // Render PDF localmente
@@ -112,14 +119,18 @@
     AppState.isProcessing = true;
     toggleLoading(true, "Analizando documento con IA...");
 
-    const payload = {
-      name: AppState.pdfFile.name,
-      mimeType: AppState.pdfFile.type,
-      base64: AppState.pdfBase64
-    };
+    // Temporizador de seguridad (60 segundos)
+    const timeoutId = setTimeout(() => {
+      if (AppState.isProcessing) {
+        AppState.isProcessing = false;
+        toggleLoading(false);
+        showToast('Timeout', 'La operación está tardando demasiado. Reintenta con un archivo más ligero.', 'danger');
+      }
+    }, 60000);
 
     google.script.run
       .withSuccessHandler(response => {
+        clearTimeout(timeoutId);
         if (response.success) {
           AppState.extractedData = response.data;
           poblarFormulario(response.data);
@@ -132,6 +143,7 @@
         toggleLoading(false);
       })
       .withFailureHandler(err => {
+        clearTimeout(timeoutId);
         showToast('Error de Servidor', err.message, 'danger');
         AppState.isProcessing = false;
         toggleLoading(false);
@@ -158,8 +170,15 @@
 
     toggleLoading(true, "Registrando en Libro de Gobierno...");
 
+    // Temporizador de seguridad (60 segundos)
+    const timeoutId = setTimeout(() => {
+      toggleLoading(false);
+      showToast('Timeout', 'El registro está tardando. Verifica tu conexión o el estado de la hoja.', 'warning');
+    }, 60000);
+
     google.script.run
       .withSuccessHandler(res => {
+        clearTimeout(timeoutId);
         if (res.success) {
           showToast('Registrado', res.message, 'success');
           resetForm();
@@ -170,6 +189,7 @@
         toggleLoading(false);
       })
       .withFailureHandler(err => {
+        clearTimeout(timeoutId);
         showToast('Error', err.message, 'danger');
         toggleLoading(false);
       })
