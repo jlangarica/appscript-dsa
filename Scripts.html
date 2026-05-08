@@ -4,6 +4,30 @@
    * @author Antigravity AI
    */
 
+  // --- SILENCIADOR DE RUIDO DE ENTORNO (GAS INFRASTRUCTURE) ---
+  (function() {
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    const noisePatterns = [
+      'Feature Policy', 
+      'dropping postMessage', 
+      'accelerometer', 
+      'gyroscope', 
+      'payment', 
+      'sync-xhr'
+    ];
+
+    console.warn = function(...args) {
+      if (noisePatterns.some(p => String(args[0]).includes(p))) return;
+      originalWarn.apply(console, args);
+    };
+    // No silenciamos errores críticos, solo los descriptivos del sandbox
+    console.error = function(...args) {
+      if (String(args[0]).includes('dropping postMessage')) return;
+      originalError.apply(console, args);
+    };
+  })();
+
   // --- CAPA DE ESTADO (Reactive Proxy) ---
   const AppState = new Proxy({
     vistaActual: 'v-dashboard',
