@@ -144,7 +144,7 @@ const DSA_App = (function() {
 
 
   // --- INICIALIZACIÓN ---
-  document.addEventListener('DOMContentLoaded', () => {
+  function init() {
     cambiarVista('v-dashboard');
     initDragAndDrop();
     initContextMenu();
