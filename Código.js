@@ -16,7 +16,11 @@ const CONFIG = {
   
   // Configuración de Gemini (Google AI Studio - Zero Cost)
   GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
-  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite"
+  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite",
+  
+  // IDs de Generación Documental (Regla #5: PropertiesService recomendado, pero hardcoded por petición)
+  TEMPLATE_DOC_ID: "1iu5gIOnQJku_5JkwZlaWfMtjtkq3YlfOBrqUzc4vrec",
+  FOLDER_GENERADOS_ID: "1g4E4LR9xIYsKtL-O68jTWFVQDfMAIRTc"
 };
 
 /**
@@ -290,6 +294,122 @@ function obtenerRegistros() {
     console.error("Error en obtenerRegistros:", error.toString());
     return { success: false, message: error.toString() };
   }
+}
+
+/**
+ * Genera un documento de respuesta basado en una plantilla y metadatos.
+ * @param {Object} datos El objeto con los datos del oficio original y el texto de respuesta.
+ * @return {Object} Resultado con el enlace al documento generado.
+ */
+function generarRespuestaOficio(datos) {
+  console.log("Iniciando generación de respuesta...");
+  try {
+    let contenidoFinal = datos.notasUsuario;
+
+    // Si es redacción asistida, usamos Gemini para profesionalizar el texto
+    if (datos.asistido) {
+      console.log("Mejorando redacción con motor de lenguaje...");
+      const prompt = `
+        Actúa como un redactor jurídico-administrativo experto. 
+        Profesionaliza el siguiente texto de respuesta para un oficio oficial.
+        DATOS DEL OFICIO ORIGINAL:
+        - Dirigido a: ${datos.titular} (${datos.area})
+        - Asunto: ${datos.asunto}
+        - Oficio de referencia: ${datos.oficio}
+        
+        NOTAS DEL USUARIO PARA LA RESPUESTA:
+        "${datos.notasUsuario}"
+        
+        INSTRUCCIONES:
+        - Usa un lenguaje formal, institucional y claro.
+        - Mantén la estructura de un oficio de respuesta.
+        - No inventes datos que no estén aquí.
+        - Devuelve ÚNICAMENTE el cuerpo del texto de la respuesta.
+      `;
+      contenidoFinal = llamarGeminiTexto(prompt);
+    }
+
+    // 1. Clonar plantilla
+    const plantilla = DriveApp.getFileById(CONFIG.TEMPLATE_DOC_ID);
+    const nombreArchivo = `RESPUESTA - ${datos.oficio} - ${datos.titular}`;
+    const copiaDoc = plantilla.makeCopy(nombreArchivo, DriveApp.getFolderById(CONFIG.FOLDER_GENERADOS_ID));
+    
+    // 2. Reemplazar placeholders en el documento
+    const doc = DocumentApp.openById(copiaDoc.getId());
+    const body = doc.getBody();
+    
+    const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    body.replaceText("{{FECHA}}", hoy);
+    body.replaceText("{{TITULAR}}", datos.titular);
+    body.replaceText("{{AREA}}", datos.area);
+    body.replaceText("{{ASUNTO}}", datos.asunto);
+    body.replaceText("{{REFERENCIA}}", datos.oficio);
+    body.replaceText("{{RESPUESTA}}", contenidoFinal);
+    
+    doc.saveAndClose();
+
+    // 3. Registrar en pestaña "Generados"
+    registrarEnGenerados(datos, copiaDoc.getUrl());
+
+    return { success: true, url: copiaDoc.getUrl() };
+  } catch (error) {
+    console.error("Error en generarRespuestaOficio:", error.toString());
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Registra la respuesta generada en la pestaña 'Generados'.
+ */
+function registrarEnGenerados(datos, docUrl) {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO);
+    let sheet = ss.getSheetByName("Generados");
+    
+    if (!sheet) {
+      sheet = ss.insertSheet("Generados");
+      sheet.appendRow(["FECHA", "REFERENCIA (OFICIO)", "DESTINATARIO", "ASUNTO", "REDACTOR", "URL DOCUMENTO"]);
+      sheet.getRange("A1:F1").setBackground("#f3f3f3").setFontWeight("bold");
+    }
+
+    sheet.appendRow([
+      new Date(),
+      datos.oficio,
+      datos.titular,
+      datos.asunto,
+      Session.getActiveUser().getEmail(),
+      docUrl
+    ]);
+  } catch (e) {
+    console.error("Error al registrar en Generados:", e.toString());
+  }
+}
+
+/**
+ * Llama a Gemini para procesar texto (sin PDF).
+ */
+function llamarGeminiTexto(prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+  
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }]
+  };
+
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const json = JSON.parse(response.getContentText());
+  
+  if (json.candidates && json.candidates[0].content) {
+    return json.candidates[0].content.parts[0].text.trim();
+  }
+  throw new Error("No se pudo obtener respuesta del motor de lenguaje.");
 }
 
 // ===================================================================

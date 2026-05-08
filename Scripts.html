@@ -8,10 +8,9 @@
   const AppState = new Proxy({
     vistaActual: 'v-dashboard',
     pasoActual: 1,
-    pdfFile: null,
-    pdfBase64: null,
     extractedData: null,
     bibliotecaData: [],
+    oficioParaRespuesta: null,
     isProcessing: false,
     isDark: localStorage.getItem('dsa-theme') === 'dark'
   }, {
@@ -363,6 +362,67 @@
     tbody.innerHTML = html;
   }
 
+  // --- GESTOR DE RESPUESTAS ---
+
+  function abrirPanelRespuesta(index) {
+    const oficio = AppState.bibliotecaData[index];
+    if (!oficio) return;
+    
+    AppState.oficioParaRespuesta = oficio;
+    
+    document.getElementById('resp-oficio-ref').innerText = oficio.oficio;
+    document.getElementById('resp-destinatario').innerText = oficio.titular;
+    document.getElementById('resp-area').innerText = oficio.area;
+    document.getElementById('resp-notas').value = '';
+    
+    const panel = document.getElementById('panel-respuesta');
+    panel.classList.remove('d-none');
+    setTimeout(() => {
+      panel.style.transform = 'translateX(0)';
+    }, 10);
+  }
+
+  function cerrarPanelRespuesta() {
+    const panel = document.getElementById('panel-respuesta');
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      panel.classList.add('d-none');
+    }, 400);
+  }
+
+  function ejecutarGeneracion(asistido) {
+    const notas = document.getElementById('resp-notas').value;
+    if (!notas.trim()) {
+      showToast('Atención', 'Por favor escribe los puntos clave para la respuesta.', 'warning');
+      return;
+    }
+
+    const payload = {
+      ...AppState.oficioParaRespuesta,
+      notasUsuario: notas,
+      asistido: asistido
+    };
+
+    toggleLoading(true, asistido ? "Generando redacción profesional..." : "Generando borrador...");
+
+    google.script.run
+      .withSuccessHandler(res => {
+        toggleLoading(false);
+        if (res && res.success) {
+          showToast('Éxito', 'Documento generado correctamente.', 'success');
+          window.open(res.url, '_blank');
+          cerrarPanelRespuesta();
+        } else {
+          showToast('Error', res.message || 'No se pudo generar el documento.', 'danger');
+        }
+      })
+      .withFailureHandler(err => {
+        toggleLoading(false);
+        showToast('Error de Servidor', err.message, 'danger');
+      })
+      .generarRespuestaOficio(payload);
+  }
+
   // --- GESTOR DE BIBLIOTECA ---
 
   function cargarBiblioteca() {
@@ -456,6 +516,11 @@
             <a href="${reg.url}" target="_blank" class="btn btn-sm btn-link p-0 text-primary">
               <i class="bi bi-file-earmark-pdf" style="font-size: 1.2rem;"></i>
             </a>
+          </td>
+          <td class="pe-4 text-center">
+            <button class="btn btn-sm btn-link p-0 text-success" onclick="abrirPanelRespuesta(${data.indexOf(reg)})">
+              <i class="bi bi-reply-fill" style="font-size: 1.2rem;"></i>
+            </button>
           </td>
         </tr>
       `;
