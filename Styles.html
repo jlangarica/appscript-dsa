@@ -257,6 +257,10 @@
     color: white;
   }
 
+  .step-item.completed {
+    cursor: pointer;
+  }
+
   .step-line {
     width: 80px;
     height: 2px;
@@ -384,4 +388,26 @@
   }
 
   .max-w-600 { max-width: 600px; margin: 0 auto; }
+
+  /* Animations */
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  .progress-bar-fill.processing {
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+
+  textarea.mac-input {
+    overflow-y: hidden;
+    resize: none;
+    transition: height 0.2s ease;
+  }
 </style>

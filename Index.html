@@ -130,17 +130,17 @@
 
       <!-- MAC STEPPER -->
       <div class="apple-stepper" id="stepper-main">
-        <div class="step-item active" id="step-ui-1">
+        <div class="step-item active" id="step-ui-1" onclick="if(this.classList.contains('completed')) cambiarPaso(1)">
           <div class="step-dot">1</div>
           <div class="step-label">Subir</div>
         </div>
         <div class="step-line"></div>
-        <div class="step-item" id="step-ui-2">
+        <div class="step-item" id="step-ui-2" onclick="if(this.classList.contains('completed')) cambiarPaso(2)">
           <div class="step-dot">2</div>
           <div class="step-label">Validar</div>
         </div>
         <div class="step-line"></div>
-        <div class="step-item" id="step-ui-3">
+        <div class="step-item" id="step-ui-3" onclick="if(this.classList.contains('completed')) cambiarPaso(3)">
           <div class="step-dot">3</div>
           <div class="step-label">Confirmar</div>
         </div>
@@ -378,7 +378,8 @@
   </main>
 
   <!-- PANEL DE RESPUESTA (Slide-over) -->
-  <div id="panel-respuesta" class="d-none" style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); border-left: 1px solid var(--separator); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+  <div id="panel-overlay" class="d-none" style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; backdrop-filter: blur(2px); transition: opacity 0.3s; opacity: 0;" onclick="cerrarPanelRespuesta()"></div>
+  <div id="panel-respuesta" class="d-none" style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); border-left: 1px solid var(--separator); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(100%);">
     <div class="p-4 h-100 d-flex flex-column">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Redactar Respuesta</h4>
