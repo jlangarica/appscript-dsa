@@ -1,8 +1,6 @@
-/**
- * OFICIALÍA DE PARTES DIGITAL - BACKEND CORE (Propuesta 4: Monolito Gemini)
+ * DIVISIÓN DE SERVICIOS ADMINISTRATIVOS - BACKEND CORE
  * Arquitectura: Multimodal Gemini (OCR + Razonamiento en un solo paso)
  * @author Antigravity AI
- */
 
 // ===================================================================
 // 1. CONFIGURACIÓN DEL SISTEMA (Seguridad: Regla #5)
@@ -67,7 +65,7 @@ function diagnosticarSistema() {
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
-    .setTitle('Oficialía Digital')
+    .setTitle('División de Servicios Administrativos')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
@@ -365,7 +363,7 @@ function _getOrCreateFolder(parent, name) {
 function _notificarUrgencia(folio, datos) {
   try {
     const destinatario = Session.getActiveUser().getEmail(); 
-    const asunto = `[OFICIALÍA DIGITAL] ⚠️ Oficio URGENTE — ${folio}`;
+    const asunto = `[DSA] ⚠️ Oficio URGENTE — ${folio}`;
     const cuerpo = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <h2 style="color: #e74c3c; border-bottom: 2px solid #fecaca; padding-bottom: 10px;">⚠️ Oficio con Prioridad Alta</h2>
@@ -376,13 +374,13 @@ function _notificarUrgencia(folio, datos) {
           <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Oficio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.oficio}</td></tr>
           <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Asunto:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.asunto}</td></tr>
         </table>
-        <p style="margin-top: 20px; font-size: 0.875rem; color: #718096;">Este es un mensaje automático generado por el Sistema de Oficialía Digital.</p>
+        <p style="margin-top: 20px; font-size: 0.875rem; color: #718096;">Este es un mensaje automático generado por la División de Servicios Administrativos.</p>
       </div>
     `;
     
     GmailApp.sendEmail(destinatario, asunto, "", { 
       htmlBody: cuerpo,
-      name: "Sistema Oficialía Digital"
+      name: "División de Servicios Administrativos"
     });
     
     _log("INFO", "_notificarUrgencia", `Notificación enviada para folio ${folio}`);
