@@ -371,8 +371,10 @@
     AppState.oficioParaRespuesta = oficio;
     
     document.getElementById('resp-oficio-ref').innerText = oficio.oficio;
-    document.getElementById('resp-destinatario').innerText = oficio.titular;
-    document.getElementById('resp-area').innerText = oficio.area;
+    document.getElementById('resp-titular').value = oficio.titular;
+    document.getElementById('resp-area-val').value = oficio.area;
+    document.getElementById('resp-oficio-val').value = oficio.oficio;
+    document.getElementById('resp-asunto-val').value = oficio.asunto;
     document.getElementById('resp-notas').value = '';
     
     const panel = document.getElementById('panel-respuesta');
@@ -398,7 +400,10 @@
     }
 
     const payload = {
-      ...AppState.oficioParaRespuesta,
+      titular: document.getElementById('resp-titular').value,
+      area: document.getElementById('resp-area-val').value,
+      oficio: document.getElementById('resp-oficio-val').value,
+      asunto: document.getElementById('resp-asunto-val').value,
       notasUsuario: notas,
       asistido: asistido
     };
