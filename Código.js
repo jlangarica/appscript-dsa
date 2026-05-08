@@ -20,7 +20,8 @@ const CONFIG = {
   SHEET_ID_GOBIERNO: getProp("SHEET_ID_GOBIERNO"),
   
   // API Key de Gemini
-  GEMINI_API_KEY: getProp("GEMINI_API_KEY")
+  GEMINI_API_KEY: getProp("GEMINI_API_KEY"),
+  GEMINI_MODEL: getProp("GEMINI_MODEL") || "gemini-2.5-flash-lite"
 };
 
 // ===================================================================
@@ -114,7 +115,7 @@ function llamarDocumentAI(pdfBlob) {
  * @private
  */
 function llamarGemini(textoExtraido) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
   
   const systemPrompt = `
     Eres un experto analista documental gubernamental.
