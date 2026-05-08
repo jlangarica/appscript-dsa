@@ -1,5 +1,5 @@
-# 🚀 Sistema de Gestión Documental Inteligente (DSA)
-### **Enterprise-Grade | Zero-Cost Infrastructure | Powered by Google AI**
+# 🚀 División de Servicios Administrativos (DSA)
+### **Sistema de Gestión Documental Inteligente | Powered by Google AI**
 
 ---
 
@@ -291,4 +291,4 @@ Este proyecto utiliza **Clasp** para el desarrollo local con TypeScript.
 > El entorno de ejecución requiere que el motor V8 esté habilitado en `appsscript.json` para soportar la sintaxis moderna de JavaScript utilizada en el controlador y el backend.
 
 ---
-© 2026 Sistema DSA - Implementación de Vanguardia en Google Workspace.
+© 2026 División de Servicios Administrativos (DSA) - Implementación de Vanguardia.
