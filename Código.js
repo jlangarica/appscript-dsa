@@ -324,31 +324,40 @@ function _conReintentos(fn, label) {
  */
 function obtenerEstadisticas() {
   try {
-    const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO).getActiveSheet();
-    const data = sheet.getDataRange().getValues(); // Regla #3: Batching. Carga toda la BD de golpe en memoria.
+    const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID_GOBIERNO).getSheets()[0];
+    const data = sheet.getDataRange().getValues(); 
 
     if (data.length <= 1) {
       return { 
         success: true, 
-        data: { total: 0, pendientes: 0, urgentes: 0, tiempoPromedio: "0 min", registradosHoy: 0 } 
+        data: { total: 0, pendientes: 0, urgentes: 0, registradosHoy: 0, recientes: [] } 
       };
     }
 
-    const rows = data.slice(1); // Omitir encabezados
+    const rows = data.slice(1);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     let [total, pendientes, urgentes, registradosHoy] = [rows.length, 0, 0, 0];
 
     rows.forEach(row => {
-      const urgencia = row[4]; // Columna E (Urgencia)
-      const estatus = row[5];  // Columna F (Estatus)
+      const urgencia = row[6]; // Columna G (Prioridad)
+      const estatus = row[8];  // Columna I (Estatus)
       const fecha = new Date(row[0]); // Columna A (Fecha)
 
       if (estatus === "Pendiente" || estatus === "Recibido") pendientes++;
-      if (urgencia === "Alta") urgentes++;
+      if (urgencia === "Alta" || urgencia === "Crítica") urgentes++;
       if (fecha >= hoy) registradosHoy++;
     });
+
+    // Obtener los últimos 5 para actividad reciente
+    const recientes = rows.slice(-5).reverse().map(row => ({
+      folio: "FOL-" + row[0].getTime().toString().slice(-4), // Simulado o real si existe columna
+      titular: row[1],
+      asunto: row[4],
+      fecha: row[0],
+      estatus: row[8]
+    }));
 
     return {
       success: true,
@@ -356,8 +365,8 @@ function obtenerEstadisticas() {
         total, 
         pendientes, 
         urgentes, 
-        tiempoPromedio: "2.1 min", // Valor simulado o calculado según lógica de negocio
-        registradosHoy 
+        registradosHoy,
+        recientes
       }
     };
   } catch (error) {

@@ -57,15 +57,15 @@
           <div class="apple-stats-card">
             <div class="accent-bar bg-primary"></div>
             <div class="stats-label">Total Registros</div>
-            <div class="stats-value">1,284</div>
-            <div class="text-success small mt-1"><i class="bi bi-arrow-up-short"></i> 12%</div>
+            <div class="stats-value" id="stat-total">0</div>
+            <div class="text-success small mt-1"><i class="bi bi-arrow-up-short"></i> <span id="stat-hoy">0</span> hoy</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="apple-stats-card">
             <div class="accent-bar bg-warning"></div>
             <div class="stats-label">Pendientes</div>
-            <div class="stats-value text-warning">24</div>
+            <div class="stats-value text-warning" id="stat-pendientes">0</div>
             <div class="text-secondary small mt-1">Por validar</div>
           </div>
         </div>
@@ -73,7 +73,7 @@
           <div class="apple-stats-card">
             <div class="accent-bar bg-danger"></div>
             <div class="stats-label">Urgentes</div>
-            <div class="stats-value text-danger">5</div>
+            <div class="stats-value text-danger" id="stat-urgentes">0</div>
             <div class="text-secondary small mt-1">Acción requerida</div>
           </div>
         </div>
@@ -111,20 +111,9 @@
                 <th class="pe-4">ESTATUS</th>
               </tr>
             </thead>
-            <tbody class="border-top-0">
+            <tbody class="border-top-0" id="tabla-recientes-body">
               <tr>
-                <td class="ps-4 fw-medium">FOL-9821</td>
-                <td>Poder Judicial</td>
-                <td>Amparo Directo 45/2026</td>
-                <td>Hace 10 min</td>
-                <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">Registrado</span></td>
-              </tr>
-              <tr>
-                <td class="ps-4 fw-medium">FOL-9820</td>
-                <td>Tesorería Municipal</td>
-                <td>Reporte de Ingresos Q1</td>
-                <td>Hace 1 hora</td>
-                <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">Registrado</span></td>
+                <td colspan="5" class="text-center py-4 text-secondary">Cargando actividad...</td>
               </tr>
             </tbody>
           </table>
