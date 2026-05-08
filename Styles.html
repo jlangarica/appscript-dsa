@@ -362,5 +362,26 @@
   .section-white { background: #ffffff; [data-theme="dark"] & { background: #1c1c1e; } }
   .section-gray { background: #f5f5f7; [data-theme="dark"] & { background: #000000; } }
   
+  /* Donut Chart SVG */
+  .donut-chart { position: relative; width: 80px; height: 80px; margin: 0 auto; }
+  .donut-chart svg { transform: rotate(-90deg); }
+
+  /* Progress Bar UX */
+  .progress-stepper {
+    background: var(--system-gray5);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    [data-theme="dark"] & { background: rgba(255,255,255,0.1); }
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--system-blue);
+    width: 0%;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px rgba(0, 122, 255, 0.4);
+  }
+
   .max-w-600 { max-width: 600px; margin: 0 auto; }
 </style>
