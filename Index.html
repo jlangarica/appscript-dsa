@@ -21,15 +21,15 @@
       <span>División de Servicios Administrativos</span>
     </div>
     
-    <div class="nav-group-title">Menu Principal</div>
+    <div class="nav-group-title">Oficialía de Partes</div>
     <a class="mac-nav-link active" onclick="cambiarVista('v-dashboard')">
-      <i class="bi bi-grid"></i> <span>Inicio</span>
+      <i class="bi bi-house-door"></i> <span>Libro de Gobierno</span>
     </a>
     <a class="mac-nav-link" onclick="cambiarVista('v-registro')">
-      <i class="bi bi-plus-circle"></i> <span>Nuevo Registro</span>
+      <i class="bi bi-file-earmark-plus"></i> <span>Recepción de Oficio</span>
     </a>
     <a class="mac-nav-link" onclick="cambiarVista('v-archivo')">
-      <i class="bi bi-archive"></i> <span>Biblioteca</span>
+      <i class="bi bi-collection"></i> <span>Acervo Documental</span>
     </a>
 
     <div class="nav-group-title">Preferencias</div>
@@ -50,14 +50,16 @@
   <!-- MAIN CONTENT AREA -->
   <main class="p-0">
     <header class="mac-topbar d-flex justify-content-between align-items-center px-4 py-3">
-      <div class="fw-medium text-secondary" id="app-breadcrumb">Inicio <span class="mx-2">/</span> Resumen</div>
-      <div class="d-flex align-items-center gap-3">
-        <div class="input-group search-wrapper" style="width: 250px;">
-           <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary z-index-1" style="font-size: 0.8rem;"></i>
-           <input type="text" class="mac-input ps-5 py-1 rounded-pill" placeholder="Buscar en el sistema...">
-           <div class="mac-kbd" style="font-size: 0.6rem;">⌘K</div>
+      <div>
+        <div class="fw-bold text-primary" style="font-size: 0.75rem; letter-spacing: 0.05em;">OFICIALÍA DE PARTES — DSA</div>
+        <div class="fw-medium text-secondary small" id="app-breadcrumb">Mesa de Entrada <span class="mx-2">/</span> Resumen Operativo</div>
+      </div>
+      <div class="d-flex align-items-center gap-4">
+        <div class="text-end d-none d-md-block">
+          <div class="small fw-bold lh-1" id="user-role">Titular de Área</div>
+          <div id="fecha-operativa" class="text-secondary" style="font-size: 0.65rem;">Operación: ${new Date().toLocaleDateString()}</div>
         </div>
-        <div class="avatar-circle bg-primary text-white">AD</div>
+        <div class="avatar-circle bg-primary text-white">DSA</div>
       </div>
     </header>
     
@@ -68,7 +70,7 @@
         <div class="col-md-3">
           <div class="apple-stats-card">
             <div class="accent-bar bg-primary"></div>
-            <div class="stats-label">Total Registros</div>
+            <div class="stats-label">Fojas Ingresadas</div>
             <div class="stats-value" id="stat-total">0</div>
             <div class="text-success small mt-1"><i class="bi bi-arrow-up-short"></i> <span id="stat-hoy">0</span> hoy</div>
           </div>
@@ -76,7 +78,7 @@
         <div class="col-md-3">
           <div class="apple-stats-card">
             <div class="accent-bar bg-warning"></div>
-            <div class="stats-label">Pendientes</div>
+            <div class="stats-label">Pendientes de Turno</div>
             <div class="stats-value text-warning" id="stat-pendientes">0</div>
             <div class="text-secondary small mt-1">Por validar</div>
           </div>
@@ -84,9 +86,9 @@
         <div class="col-md-3">
           <div class="apple-stats-card">
             <div class="accent-bar bg-danger"></div>
-            <div class="stats-label">Urgentes</div>
+            <div class="stats-label">Término Próximo</div>
             <div class="stats-value text-danger" id="stat-urgentes">0</div>
-            <div class="text-secondary small mt-1">Acción requerida</div>
+            <div class="text-secondary small mt-1">Atención Prioritaria</div>
           </div>
         </div>
         <div class="col-md-3">
@@ -522,8 +524,8 @@
     <div class="mac-loader-container">
       <div class="mac-spinner"></div>
       <div class="text-center">
-        <div id="loader-message" class="fw-bold h5 mb-1">Procesando</div>
-        <div id="loader-submessage" class="text-secondary small">Iniciando análisis...</div>
+        <div id="loader-message" class="fw-bold h5 mb-1">Sistema de Gestión DSA</div>
+        <div id="loader-submessage" class="text-secondary small">Validando criptografía y metadatos...</div>
       </div>
       <div class="progress-stepper" style="width: 200px; height: 4px;">
         <div id="loader-progress" class="progress-bar-fill"></div>

@@ -2,8 +2,12 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
   :root {
+    /* DSA Institutional Palette */
+    --dsa-primary: #1A365D; /* Azul Marino Institucional */
+    --dsa-accent: #C5A059;  /* Dorado Institucional */
+    --system-blue: var(--dsa-primary); 
+    
     /* Apple System Colors - Light Mode */
-    --system-blue: #007aff;
     --system-gray: #8e8e93;
     --system-gray2: #aeaeb2;
     --system-gray3: #c7c7cc;
@@ -584,12 +588,38 @@
   }
 
   .apple-btn-primary {
-    background: var(--system-blue);
+    background: var(--dsa-accent);
     color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(197, 160, 89, 0.2);
   }
 
-  .apple-btn:hover { opacity: 0.85; }
+  .apple-btn:hover { opacity: 0.9; transform: translateY(-1px); }
   .apple-btn:active { transform: scale(0.96); }
+
+  /* --- TICKET ACUSE --- */
+  #ticket-acuse {
+    border-top: 5px solid var(--dsa-primary);
+    background: white;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  [data-theme="dark"] #ticket-acuse {
+    background: #1c1c1e;
+    border-color: var(--dsa-accent);
+  }
+  #ticket-acuse::after {
+    content: "OFICIALÍA DE PARTES";
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    font-size: 4rem;
+    font-weight: 900;
+    opacity: 0.03;
+    transform: rotate(-10deg);
+    pointer-events: none;
+  }
 
   /* Button Loading State */
   .apple-btn.loading {
