@@ -869,4 +869,25 @@
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   }
   [data-theme="dark"] .mac-kbd { background: rgba(255,255,255,0.1); }
+  /* --- PRINT OPTIMIZATION --- */
+  @media print {
+    body * { visibility: hidden; }
+    .mac-sidebar, .mac-topbar, .apple-stepper, .no-print, .toast-container, #context-menu, #global-dropzone { 
+      display: none !important; 
+    }
+    #paso-3, #paso-3 * { visibility: visible; }
+    #paso-3 { 
+      position: absolute; 
+      left: 0; 
+      top: 0; 
+      width: 100%; 
+    }
+    #ticket-acuse {
+      border: 1px solid #eee !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 2rem !important;
+    }
+    .apple-btn { display: none !important; }
+  }
 </style>
