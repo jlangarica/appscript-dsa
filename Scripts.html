@@ -209,6 +209,13 @@
   function cambiarVista(idVista) {
     if (AppState.vistaActual === idVista) return;
 
+    // PROTECCIÓN DE DATOS: Si estamos en registro y ya hay un PDF cargado
+    if (AppState.vistaActual === 'v-registro' && AppState.pdfFile && idVista !== 'v-registro') {
+      const confirmar = confirm("Tiene un oficio en proceso de registro. Si sale ahora, se perderán los datos extraídos. ¿Desea abandonar la página?");
+      if (!confirmar) return; // Abortar navegación
+      resetForm(); // Limpiar si decide salir
+    }
+
     if (!document.startViewTransition) {
       // Fallback para navegadores antiguos
       AppState.vistaActual = idVista;
@@ -552,6 +559,22 @@
           document.getElementById('stat-urgentes').innerText = d.urgentes || 0;
           document.getElementById('stat-hoy').innerText = d.registradosHoy || 0;
           
+          const total = d.total || 0;
+          const pendientes = d.pendientes || 0;
+          const atendidos = total - pendientes;
+          const porcentaje = total === 0 ? 100 : Math.round((atendidos / total) * 100);
+
+          // Animar gráfica
+          setTimeout(() => {
+            const circle = document.getElementById('chart-circle');
+            const percent = document.getElementById('chart-percent');
+            if (circle) circle.style.strokeDasharray = `${porcentaje} ${100 - porcentaje}`;
+            if (percent) percent.innerText = `${porcentaje}%`;
+            
+            // Cambiar color según salud operativa
+            if (circle) circle.style.stroke = porcentaje > 80 ? 'var(--system-green)' : (porcentaje > 50 ? 'var(--system-orange)' : 'var(--system-red)');
+          }, 100);
+
           _renderizarRecientes(d.recientes);
         } else {
           console.error("Error al cargar estadísticas (Response):", res);
@@ -641,8 +664,10 @@
     document.getElementById('btn-responder-det').onclick = () => abrirPanelRespuesta(index);
     document.getElementById('btn-ver-pdf-det').href = reg.url || '#';
 
-    // Animación de entrada
+    // Mostrar contenido y ocultar empty state
+    document.getElementById('det-empty-state').classList.add('d-none');
     detailPanel.classList.remove('d-none');
+    document.getElementById('det-content').classList.remove('d-none');
     
     // Resaltar fila activa
     document.querySelectorAll('#tabla-biblioteca-body tr').forEach(tr => tr.classList.remove('table-active'));
@@ -653,8 +678,8 @@
   }
 
   function cerrarDetalle() {
-    const detailPanel = document.getElementById('biblio-detail');
-    detailPanel.classList.add('d-none');
+    document.getElementById('det-content').classList.add('d-none');
+    document.getElementById('det-empty-state').classList.remove('d-none');
     document.querySelectorAll('#tabla-biblioteca-body tr').forEach(tr => tr.classList.remove('table-active'));
   }
 
@@ -920,7 +945,7 @@
 
       return `
         <tr onclick="mostrarDetalleOficio(${index})" data-index="${index}" style="cursor: pointer;">
-          <td class="ps-4 small text-secondary" data-tooltip="${reg.fecha}">${fechaHumanizada}</td>
+          <td class="ps-4 small text-secondary tabular-nums" data-tooltip="${reg.fecha}">${fechaHumanizada}</td>
           <td>
             <div class="cell-group" data-tooltip="${_escaparHTML(reg.asunto)}">
               <div class="fw-medium text-truncate" style="max-width: 150px;">${_resaltar(reg.titular)}</div>
@@ -929,7 +954,7 @@
           </td>
           <td>
             <div class="cell-group">
-              <div class="small font-monospace">${_resaltar(reg.oficio)}</div>
+              <div class="small font-monospace tabular-nums">${_resaltar(reg.oficio)}</div>
               <div><span class="badge bg-light text-dark border" style="font-size: 0.6rem;">${reg.tipo_doc}</span></div>
             </div>
           </td>

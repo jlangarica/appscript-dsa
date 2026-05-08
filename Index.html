@@ -93,13 +93,13 @@
         </div>
         <div class="col-md-3">
           <div class="apple-stats-card text-center d-flex flex-column align-items-center justify-content-center">
-            <div class="stats-label">Precisión de Lectura</div>
+            <div class="stats-label">Tasa de Atención</div>
             <div class="donut-chart mb-2">
               <svg width="80" height="80" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-gray6)" stroke-width="3"></circle>
-                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-blue)" stroke-width="3" stroke-dasharray="85 15" stroke-dashoffset="25" stroke-linecap="round"></circle>
+                <circle id="chart-circle" cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-green)" stroke-width="3" stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round" style="transition: stroke-dasharray 1.5s ease-out;"></circle>
               </svg>
-              <div class="position-absolute top-50 start-50 translate-middle fw-bold" style="font-size: 0.9rem;">85%</div>
+              <div id="chart-percent" class="position-absolute top-50 start-50 translate-middle fw-bold" style="font-size: 0.9rem;">0%</div>
             </div>
           </div>
         </div>
@@ -420,9 +420,14 @@
           </div>
         </div>
 
-        <!-- DETAIL: Visualización Rápida -->
-        <div id="biblio-detail" class="d-none mac-detail-panel flex-shrink-0" style="width: 420px;">
-          <div class="p-4 overflow-auto h-100">
+        <div id="biblio-detail" class="mac-detail-panel flex-shrink-0" style="width: 420px; transition: width 0.3s;">
+          <div id="det-empty-state" class="h-100 d-flex flex-column align-items-center justify-content-center p-4 text-center">
+            <i class="bi bi-file-text text-secondary opacity-25 mb-3" style="font-size: 4rem;"></i>
+            <h5 class="fw-bold text-primary">Visor Documental</h5>
+            <p class="text-secondary small">Seleccione un oficio del Acervo Documental para visualizar su síntesis y copia digital.</p>
+          </div>
+
+          <div id="det-content" class="p-4 overflow-auto h-100 d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
               <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2" id="det-folio-tag">FOL-0000</div>
               <button class="btn-close" onclick="cerrarDetalle()"></button>
@@ -510,8 +515,8 @@
       </div>
 
       <div class="d-grid gap-2">
-        <button class="apple-btn apple-btn-primary" onclick="ejecutarGeneracion(true)">
-          <i class="bi bi-magic me-2"></i> Redacción Profesional
+        <button class="apple-btn apple-btn-primary ai-magic-btn" onclick="ejecutarGeneracion(true)">
+          <i class="bi bi-stars me-2"></i> Redacción Profesional
         </button>
         <button class="apple-btn apple-btn-secondary" onclick="ejecutarGeneracion(false)">
           <i class="bi bi-file-earmark-text me-2"></i> Borrador Simple
