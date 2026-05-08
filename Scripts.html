@@ -107,6 +107,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     cambiarVista('v-dashboard');
     initDragAndDrop();
+    initContextMenu();
+    _detectarOS();
     
     // Aplicar tema inicial
     if (AppState.isDark) document.documentElement.setAttribute('data-theme', 'dark');
@@ -170,9 +172,21 @@
 
   // --- ENRUTADOR ---
   function cambiarVista(idVista) {
-    AppState.vistaActual = idVista;
-    if (idVista === 'v-archivo') cargarBiblioteca();
-    if (idVista === 'v-dashboard') cargarEstadisticasInicio();
+    if (AppState.vistaActual === idVista) return;
+
+    if (!document.startViewTransition) {
+      // Fallback para navegadores antiguos
+      AppState.vistaActual = idVista;
+      if (idVista === 'v-archivo') cargarBiblioteca();
+      if (idVista === 'v-dashboard') cargarEstadisticasInicio();
+      return;
+    }
+
+    document.startViewTransition(() => {
+      AppState.vistaActual = idVista;
+      if (idVista === 'v-archivo') cargarBiblioteca();
+      if (idVista === 'v-dashboard') cargarEstadisticasInicio();
+    });
   }
 
   // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
@@ -789,10 +803,9 @@
   function aplicarFiltrosBiblioteca() {
     const filtrados = {
       texto: document.getElementById('filtro-texto').value,
-      area: document.getElementById('filtro-area').value,
-      tipo: document.getElementById('filtro-tipo').value,
-      prioridad: document.getElementById('filtro-prioridad').value,
-      respuesta: document.getElementById('filtro-respuesta').value
+      prioridad: _getValChip('prioridad'),
+      tipo: _getValChip('tipo'),
+      respuesta: _getValChip('respuesta')
     };
 
     AppState.bibliotecaFiltros = filtrados;
@@ -977,5 +990,14 @@
         setTimeout(() => el.remove(), 300);
       }
     }, 5000);
+  }
+
+  function _detectarOS() {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    if (!isMac) {
+      document.querySelectorAll('.mac-kbd').forEach(el => {
+        el.innerText = 'Ctrl+K';
+      });
+    }
   }
 </script>
