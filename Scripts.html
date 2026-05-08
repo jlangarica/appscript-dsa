@@ -517,25 +517,19 @@
     const container = document.getElementById(`chip-${tipo}`);
     if (!container) return;
 
-    // Actualizar UI
+    // Actualizar UI de los chips
     container.querySelectorAll('.filter-chip').forEach(chip => {
-      if (chip.innerText.toUpperCase() === (valor || (tipo === 'respuesta' ? 'AMBOS' : 'TODAS' && tipo === 'tipo' ? 'TODOS' : 'TODAS')).toUpperCase()) {
-         // Lógica de comparación simple por texto
-      }
       chip.classList.remove('active');
-    });
-    
-    // Mejor buscar por el valor pasado
-    const chips = container.querySelectorAll('.filter-chip');
-    chips.forEach(c => {
-      const text = c.innerText.toUpperCase();
-      const valUpper = valor.toUpperCase();
-      if (valor === '' && (text === 'TODAS' || text === 'TODOS' || text === 'AMBOS')) c.classList.add('active');
-      else if (text === valUpper) c.classList.add('active');
+      
+      const text = chip.innerText.toUpperCase();
+      const valUpper = (valor === '' ? (tipo === 'respuesta' ? 'AMBOS' : (tipo === 'tipo' ? 'TODOS' : 'TODAS')) : valor).toUpperCase();
+      
+      if (text === valUpper) {
+        chip.classList.add('active');
+      }
     });
 
-    // Actualizar Estado de Filtros (Simulado, ya que usamos aplicarFiltrosBiblioteca que lee selects)
-    // Vamos a parchear aplicarFiltrosBiblioteca para leer chips
+    // Actualizar datos
     aplicarFiltrosBiblioteca();
   }
 
@@ -744,9 +738,7 @@
             <td class="ps-4"><div class="skeleton-box" style="width: 70px;"></div></td>
             <td><div class="cell-group"><div class="skeleton-box" style="width: 140px;"></div><div class="skeleton-box" style="width: 100px;"></div></div></td>
             <td><div class="cell-group"><div class="skeleton-box" style="width: 100px;"></div><div class="skeleton-box" style="width: 60px;"></div></div></td>
-            <td><div class="skeleton-box" style="width: 180px;"></div></td>
             <td><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
-            <td class="text-center"><div class="skeleton-box" style="width: 24px;"></div></td>
             <td class="text-center"><div class="skeleton-box" style="width: 24px;"></div></td>
           </tr>
         `).join('');
@@ -814,11 +806,13 @@
 
   function limpiarFiltrosYBuscar() {
     document.getElementById('filtro-texto').value = '';
-    document.getElementById('filtro-area').value = '';
-    document.getElementById('filtro-tipo').value = '';
-    document.getElementById('filtro-prioridad').value = '';
-    document.getElementById('filtro-respuesta').value = '';
-    aplicarFiltrosBiblioteca();
+    const areaSelect = document.getElementById('filtro-area');
+    if (areaSelect) areaSelect.value = '';
+    
+    // Resetear Chips
+    seleccionarChip('prioridad', '');
+    seleccionarChip('tipo', '');
+    seleccionarChip('respuesta', '');
   }
 
   function renderizarTablaBiblioteca(data) {
