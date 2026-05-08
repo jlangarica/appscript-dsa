@@ -259,7 +259,25 @@ const DSA_App = (function() {
           .checarActualizaciones();
       }
     }, 30000);
-  });
+  }
+
+  /**
+   * --- EVENT DELEGATION (Tarea #3) ---
+   * Un solo listener para toda la tabla de biblioteca.
+   */
+  function _initEventDelegation() {
+    const tbody = document.getElementById('tabla-biblioteca-body');
+    if (tbody) {
+      tbody.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        if (e.target.closest('.btn-link')) return; // Ignorar clics en el enlace de PDF
+        
+        const index = tr.getAttribute('data-index');
+        if (index !== null) mostrarDetalleOficio(index);
+      });
+    }
+  }
 
 
   // --- ENRUTADOR ---
