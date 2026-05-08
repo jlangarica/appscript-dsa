@@ -395,7 +395,7 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     if (!CONFIG.SHEET_ID_GOBIERNO) throw new Error("ID de Hoja no configurado.");
     
     // Uso de Sheets API Avanzada (Tarea #4) - Mucho más rápido que SpreadsheetApp
-    const range = 'Recibidos!A2:M'; // Actualizado a 13 columnas (A-M)
+    const range = APP_CONSTANTS.RANGOS.RECIBIDOS; 
     const response = Sheets.Spreadsheets.Values.get(CONFIG.SHEET_ID_GOBIERNO, range);
     const allData = response.values;
     
@@ -403,21 +403,24 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     
     let filteredData = allData.reverse(); 
 
+    // OPTIMIZACIÓN O(N) (Tarea #1 de Ingeniería de Élite)
     if (filtros) {
       const { texto, area, tipo, prioridad, respuesta } = filtros;
-      filteredData = filteredData.filter(row => {
-        const matchTexto = !texto || 
-          String(row[1]).toLowerCase().includes(texto.toLowerCase()) || 
-          String(row[2]).toLowerCase().includes(texto.toLowerCase()) || 
-          String(row[3]).toLowerCase().includes(texto.toLowerCase()) || 
-          String(row[4]).toLowerCase().includes(texto.toLowerCase());
-        
-        const matchArea = !area || String(row[2]) === area;
-        const matchTipo = !tipo || String(row[5]) === tipo;
-        const matchPrioridad = !prioridad || String(row[8]) === prioridad;
-        const matchRespuesta = !respuesta || String(row[9]) === respuesta;
+      const term = texto ? texto.toLowerCase() : null;
 
-        return matchTexto && matchArea && matchTipo && matchPrioridad && matchRespuesta;
+      filteredData = filteredData.filter(row => {
+        // 1. Filtros exactos (Short-Circuit)
+        if (area && String(row[2]) !== area) return false;
+        if (tipo && String(row[5]) !== tipo) return false;
+        if (prioridad && String(row[8]) !== prioridad) return false;
+        if (respuesta && String(row[9]) !== respuesta) return false;
+
+        // 2. Filtro de búsqueda textual
+        if (term) {
+          const searchPool = `${row[1]} ${row[2]} ${row[3]} ${row[4]}`.toLowerCase();
+          if (!searchPool.includes(term)) return false;
+        }
+        return true;
       });
     }
 
