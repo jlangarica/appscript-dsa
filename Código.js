@@ -1,6 +1,8 @@
+/**
  * DIVISIÓN DE SERVICIOS ADMINISTRATIVOS - BACKEND CORE
  * Arquitectura: Multimodal Gemini (OCR + Razonamiento en un solo paso)
  * @author Antigravity AI
+ */
 
 // ===================================================================
 // 1. CONFIGURACIÓN DEL SISTEMA (Seguridad: Regla #5)
