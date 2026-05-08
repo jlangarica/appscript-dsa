@@ -268,6 +268,100 @@
     overflow-y: auto;
   }
 
+  /* --- CONTEXT MENU (Native Desktop Style) --- */
+  .context-menu {
+    position: fixed;
+    z-index: 3000;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid var(--separator);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    padding: 6px;
+    min-width: 180px;
+    animation: macScaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes macScaleIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .context-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .context-item:hover { background: var(--system-blue); color: white; }
+  .context-item i { font-size: 1rem; width: 20px; text-align: center; }
+  .context-divider { height: 1px; background: var(--separator); margin: 6px 0; }
+
+  /* --- FILTER CHIPS --- */
+  .filter-chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: var(--system-gray6);
+    border: 1px solid var(--separator);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .filter-chip:hover { background: var(--system-gray5); }
+  .filter-chip.active {
+    background: var(--system-blue);
+    color: white;
+    border-color: var(--system-blue);
+  }
+
+  /* --- GLASS TOOLTIPS --- */
+  [data-tooltip] { position: relative; }
+  [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    width: max-content;
+    max-width: 280px;
+    z-index: 5000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: macTooltipIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes macTooltipIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(0); }
+    to { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+  }
+
+  /* --- VIEW TRANSITIONS SUPPORT --- */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.4s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   /* --- MAC WINDOW CARDS --- */
   .mac-card {
     background: var(--card-bg);

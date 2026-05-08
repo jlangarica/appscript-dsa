@@ -334,35 +334,49 @@
 
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
-      <!-- Filtros Avanzados -->
+      <!-- Filtros Avanzados (Elite Chips) -->
       <div class="mac-card p-4 mb-4">
-        <div class="row g-3">
-          <div class="col-md-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-3">
             <div class="input-group search-wrapper">
               <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
-              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2 pe-5" placeholder="Buscar oficio...">
+              <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2 pe-5" placeholder="Buscar en biblioteca...">
               <div class="mac-kbd">⌘K</div>
             </div>
           </div>
-          <div class="col-md-2">
-            <select id="filtro-area" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Todas las Áreas</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select id="filtro-tipo" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Todos los Tipos</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select id="filtro-prioridad" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Prioridad</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select id="filtro-respuesta" class="mac-input py-2" onchange="aplicarFiltrosBiblioteca()">
-              <option value="">Respuesta</option>
-            </select>
+          <div class="col-md-9">
+            <div class="d-flex gap-4 align-items-center">
+              <div>
+                <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">PRIORIDAD</div>
+                <div class="filter-chip-group" id="chip-prioridad">
+                  <div class="filter-chip active" onclick="seleccionarChip('prioridad', '')">Todas</div>
+                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Baja')">Baja</div>
+                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Normal')">Normal</div>
+                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Alta')">Alta</div>
+                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Crítica')">Crítica</div>
+                </div>
+              </div>
+              <div>
+                <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">TIPO</div>
+                <div class="filter-chip-group" id="chip-tipo">
+                  <div class="filter-chip active" onclick="seleccionarChip('tipo', '')">Todos</div>
+                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Informativo')">Informativo</div>
+                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Solicitud')">Solicitud</div>
+                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Requerimiento')">Requerimiento</div>
+                </div>
+              </div>
+              <div>
+                <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">RESPUESTA</div>
+                <div class="filter-chip-group" id="chip-respuesta">
+                  <div class="filter-chip active" onclick="seleccionarChip('respuesta', '')">Ambos</div>
+                  <div class="filter-chip" onclick="seleccionarChip('respuesta', 'SÍ')">Sí</div>
+                  <div class="filter-chip" onclick="seleccionarChip('respuesta', 'NO')">No</div>
+                </div>
+              </div>
+              <div class="ms-auto">
+                <button class="btn btn-link text-secondary p-0 small text-decoration-none" onclick="limpiarFiltrosYBuscar()">Limpiar</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -510,6 +524,11 @@
 
   <!-- TOAST CONTAINER -->
   <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-4"></div>
+
+  <!-- CONTEXT MENU CONTAINER -->
+  <div id="context-menu" class="context-menu d-none">
+    <!-- Se puebla dinámicamente -->
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <?!= include('Scripts'); ?>
