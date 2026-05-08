@@ -144,10 +144,21 @@
       if (e.target.files.length > 0) handleFile(e.target.files[0]);
     });
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    ['dragenter', 'dragover'].forEach(eventName => {
       dropzone.addEventListener(eventName, e => {
         e.preventDefault();
         e.stopPropagation();
+        dropzone.style.borderColor = 'var(--system-blue)';
+        dropzone.style.background = 'rgba(0, 122, 255, 0.05)';
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.style.borderColor = '';
+        dropzone.style.background = '';
       }, false);
     });
 
@@ -546,22 +557,34 @@
         'Crítica': 'danger'
       }[reg.urgencia] || 'primary';
 
+      const btnDoc = reg.url 
+        ? `<a href="${reg.url}" target="_blank" class="btn btn-sm btn-link p-0 text-primary" title="Ver Documento">
+             <i class="bi bi-file-earmark-pdf" style="font-size: 1.2rem;"></i>
+           </a>`
+        : `<button class="btn btn-sm btn-link p-0 text-secondary opacity-50" disabled title="Documento no disponible">
+             <i class="bi bi-file-earmark-pdf" style="font-size: 1.2rem;"></i>
+           </button>`;
+
       return `
         <tr>
           <td class="ps-4 small text-secondary">${reg.fecha}</td>
-          <td class="fw-medium">${_escaparHTML(reg.titular)}</td>
-          <td class="small text-secondary">${_escaparHTML(reg.area)}</td>
-          <td class="small font-monospace">${_escaparHTML(reg.oficio)}</td>
-          <td><span class="badge bg-light text-dark border small">${reg.tipo_doc}</span></td>
+          <td>
+            <div class="cell-group">
+              <div class="fw-medium text-truncate" style="max-width: 180px;">${_escaparHTML(reg.titular)}</div>
+              <div class="small text-secondary text-truncate" style="max-width: 180px;">${_escaparHTML(reg.area)}</div>
+            </div>
+          </td>
+          <td>
+            <div class="cell-group">
+              <div class="small font-monospace">${_escaparHTML(reg.oficio)}</div>
+              <div><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${reg.tipo_doc}</span></div>
+            </div>
+          </td>
           <td class="small text-truncate" style="max-width: 200px;">${_escaparHTML(reg.asunto)}</td>
           <td><span class="badge bg-${colorPrioridad}-subtle text-${colorPrioridad} rounded-pill px-3">${reg.urgencia}</span></td>
+          <td class="pe-4 text-center">${btnDoc}</td>
           <td class="pe-4 text-center">
-            <a href="${reg.url}" target="_blank" class="btn btn-sm btn-link p-0 text-primary">
-              <i class="bi bi-file-earmark-pdf" style="font-size: 1.2rem;"></i>
-            </a>
-          </td>
-          <td class="pe-4 text-center">
-            <button class="btn btn-sm btn-link p-0 text-success" onclick="abrirPanelRespuesta(${data.indexOf(reg)})">
+            <button class="btn btn-sm btn-link p-0 text-success" onclick="abrirPanelRespuesta(${data.indexOf(reg)})" title="Responder">
               <i class="bi bi-reply-fill" style="font-size: 1.2rem;"></i>
             </button>
           </td>
