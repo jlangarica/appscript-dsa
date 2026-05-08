@@ -303,6 +303,9 @@
       return;
     }
 
+    // Mostrar loader inmediatamente durante la lectura local
+    toggleLoading(true, "Leyendo archivo...", "Preparando transferencia segura...");
+
     AppState.pdfFile = file;
     AppState.uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
@@ -334,8 +337,7 @@
     
     const msgInterval = setInterval(() => {
       msgIdx = (msgIdx + 1) % messages.length;
-      const subMessage = document.getElementById('loader-submessage');
-      if (subMessage) subMessage.textContent = messages[msgIdx];
+      toggleLoading(true, "Procesando...", messages[msgIdx]); // Actualizar loader con mensaje rotativo
       
       // Incrementar progreso simulado (más lento al final)
       if (progress < 90) {
@@ -930,18 +932,34 @@
 
   function toggleLoading(show, message = "Procesando...", submessage = "") {
     const loader = document.getElementById('global-loader');
-    if (loader) {
-      loader.classList.toggle('d-none', !show);
-      const msgEl = document.getElementById('loader-message');
-      const subMsgEl = document.getElementById('loader-submessage');
-      const progressBar = document.getElementById('loader-progress');
-      
-      if (msgEl) msgEl.innerText = message;
-      if (subMsgEl) subMsgEl.innerText = submessage;
-      if (!show && progressBar) {
+    if (!loader) return;
+
+    if (show) {
+      loader.classList.remove('d-none');
+      // Forzar reflow para animación
+      void loader.offsetWidth;
+      loader.style.opacity = '1';
+      loader.style.visibility = 'visible';
+    } else {
+      loader.style.opacity = '0';
+      loader.style.visibility = 'hidden';
+      setTimeout(() => {
+        if (loader.style.opacity === '0') loader.classList.add('d-none');
+      }, 400);
+    }
+
+    const msgEl = document.getElementById('loader-message');
+    const subMsgEl = document.getElementById('loader-submessage');
+    const progressBar = document.getElementById('loader-progress');
+    
+    if (msgEl) msgEl.innerText = message;
+    if (subMsgEl) subMsgEl.innerText = submessage;
+    
+    if (!show && progressBar) {
+      setTimeout(() => {
         progressBar.style.width = '0%';
         progressBar.classList.remove('processing');
-      }
+      }, 400);
     }
   }
 
