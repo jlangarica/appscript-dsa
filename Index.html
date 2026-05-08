@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>División de Servicios Administrativos</title>
@@ -9,116 +9,122 @@
 </head>
 <body>
 
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
+  <!-- MAC OS SIDEBAR -->
+  <nav class="mac-sidebar">
     <div class="sidebar-brand">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwznMpanZo8joZkePlBwsbRgQe82yuhR8Qvw&s" alt="Logo" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">
-      <span style="font-size: 1.1rem; line-height: 1.2;">División de Servicios Administrativos</span>
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwznMpanZo8joZkePlBwsbRgQe82yuhR8Qvw&s" alt="Logo" style="width: 52px; height: 52px; border-radius: 12px; object-fit: cover;">
+      <span>División de Servicios Administrativos</span>
     </div>
     
-    <ul class="nav flex-column">
-      <li class="nav-item">
-        <a class="nav-link active" onclick="cambiarVista('v-dashboard')">
-          <i class="bi bi-grid-1x2-fill"></i> Dashboard
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" onclick="cambiarVista('v-registro')">
-          <i class="bi bi-file-earmark-plus-fill"></i> Nuevo Registro
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" onclick="cambiarVista('v-archivo')">
-          <i class="bi bi-archive-fill"></i> Biblioteca
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" onclick="toggleTheme()" style="cursor: pointer;">
-          <i class="bi bi-moon-stars-fill"></i> Cambiar Tema
-        </a>
-      </li>
-      <li class="nav-item mt-auto">
-        <a class="nav-link" href="#" style="color: #ff7675;">
-          <i class="bi bi-box-arrow-right"></i> Salir
-        </a>
-      </li>
-    </ul>
+    <div class="nav-group-title">Menu Principal</div>
+    <a class="mac-nav-link active" onclick="cambiarVista('v-dashboard')">
+      <i class="bi bi-grid"></i> Dashboard
+    </a>
+    <a class="mac-nav-link" onclick="cambiarVista('v-registro')">
+      <i class="bi bi-plus-circle"></i> Nuevo Registro
+    </a>
+    <a class="mac-nav-link" onclick="cambiarVista('v-archivo')">
+      <i class="bi bi-archive"></i> Biblioteca
+    </a>
+
+    <div class="nav-group-title">Preferencias</div>
+    <a class="mac-nav-link" onclick="toggleTheme()" style="cursor: pointer;">
+      <i class="bi bi-moon-stars"></i> Cambiar Tema
+    </a>
+    
+    <div class="mt-auto">
+      <a class="mac-nav-link" href="#" style="color: var(--system-red);">
+        <i class="bi bi-box-arrow-right" style="color: var(--system-red);"></i> Salir
+      </a>
+    </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN CONTENT AREA -->
   <main>
     
     <!-- VISTA: DASHBOARD -->
     <div id="v-dashboard" class="vista">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Resumen General</h2>
-        <span class="badge bg-white text-dark p-2 shadow-sm">Hoy: <?= new Date().toLocaleDateString() ?></span>
+      <div class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+          <h1 class="fw-bold tracking-tight mb-1">Resumen</h1>
+          <p class="text-secondary small">Estado actual de la gestión documental</p>
+        </div>
+        <span class="text-secondary small mb-2"><?= new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }) ?></span>
       </div>
 
-      <div class="row g-4 mb-4">
+      <div class="row g-4 mb-5">
         <div class="col-md-3">
-          <div class="stats-card">
-            <div class="text-muted small fw-bold mb-1">TOTAL REGISTROS</div>
-            <div class="h3 fw-bold mb-0">1,284</div>
-            <div class="text-success small mt-2"><i class="bi bi-arrow-up"></i> +12% vs mes anterior</div>
+          <div class="apple-stats-card">
+            <div class="accent-bar bg-primary"></div>
+            <div class="stats-label">Total Registros</div>
+            <div class="stats-value">1,284</div>
+            <div class="text-success small mt-1"><i class="bi bi-arrow-up-short"></i> 12%</div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="stats-card">
-            <div class="text-muted small fw-bold mb-1">PENDIENTES</div>
-            <div class="h3 fw-bold mb-0 text-warning">24</div>
-            <div class="text-muted small mt-2">Por validar hoy</div>
+          <div class="apple-stats-card">
+            <div class="accent-bar bg-warning"></div>
+            <div class="stats-label">Pendientes</div>
+            <div class="stats-value text-warning">24</div>
+            <div class="text-secondary small mt-1">Por validar</div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="stats-card">
-            <div class="text-muted small fw-bold mb-1">URGENTES</div>
-            <div class="h3 fw-bold mb-0 text-danger">5</div>
-            <div class="text-muted small mt-2">Prioridad alta</div>
+          <div class="apple-stats-card">
+            <div class="accent-bar bg-danger"></div>
+            <div class="stats-label">Urgentes</div>
+            <div class="stats-value text-danger">5</div>
+            <div class="text-secondary small mt-1">Acción requerida</div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="stats-card text-center">
-            <div class="text-muted small fw-bold mb-2">EFICIENCIA OCR</div>
-            <div class="donut-chart">
-              <svg class="donut-svg" width="120" height="120" viewBox="0 0 42 42">
-                <circle class="donut-segment-bg" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
-                <circle class="donut-segment donut-segment-success" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke-dasharray="85 15" stroke-dashoffset="25"></circle>
+          <div class="apple-stats-card text-center d-flex flex-column align-items-center">
+            <div class="stats-label">Precisión de Lectura</div>
+            <div class="donut-chart mb-2">
+              <svg width="80" height="80" viewBox="0 0 42 42">
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-gray6)" stroke-width="3"></circle>
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--system-blue)" stroke-width="3" stroke-dasharray="85 15" stroke-dashoffset="25" stroke-linecap="round"></circle>
               </svg>
-              <div class="donut-text">85%</div>
+              <div class="position-absolute top-50 left-50 translate-middle fw-bold" style="font-size: 0.9rem;">85%</div>
             </div>
-            <div class="text-primary small mt-2">Precisión de Lectura</div>
           </div>
         </div>
       </div>
 
-      <div class="glass-card p-4">
-        <h5 class="fw-bold mb-3">Actividad Reciente</h5>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Folio</th>
-                <th>Remitente</th>
-                <th>Asunto</th>
-                <th>Fecha</th>
-                <th>Estatus</th>
+      <div class="mac-card">
+        <div class="mac-card-header">
+          <span class="fw-semibold small">ACTIVIDAD RECIENTE</span>
+          <div class="traffic-lights">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+          </div>
+        </div>
+        <div class="p-0">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
+              <tr class="text-secondary small">
+                <th class="ps-4 py-3">FOLIO</th>
+                <th>REMITENTE</th>
+                <th>ASUNTO</th>
+                <th>FECHA</th>
+                <th class="pe-4">ESTATUS</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="border-top-0">
               <tr>
-                <td><span class="fw-bold">FOL-9821</span></td>
+                <td class="ps-4 fw-medium">FOL-9821</td>
                 <td>Poder Judicial</td>
                 <td>Amparo Directo 45/2026</td>
                 <td>Hace 10 min</td>
-                <td><span class="badge bg-success">Registrado</span></td>
+                <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">Registrado</span></td>
               </tr>
               <tr>
-                <td><span class="fw-bold">FOL-9820</span></td>
+                <td class="ps-4 fw-medium">FOL-9820</td>
                 <td>Tesorería Municipal</td>
                 <td>Reporte de Ingresos Q1</td>
                 <td>Hace 1 hora</td>
-                <td><span class="badge bg-success">Registrado</span></td>
+                <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">Registrado</span></td>
               </tr>
             </tbody>
           </table>
@@ -128,84 +134,102 @@
 
     <!-- VISTA: REGISTRO -->
     <div id="v-registro" class="vista d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 class="fw-bold mb-0">Registro de Nuevo Oficio</h2>
-          <p class="text-muted">Digitalización y extracción de metadatos inteligente</p>
+      <div class="text-center mb-4">
+        <h1 class="fw-bold mb-1">Nuevo Registro</h1>
+        <p class="text-secondary">Digitalización y extracción inteligente de metadatos</p>
+      </div>
+
+      <!-- MAC STEPPER -->
+      <div class="apple-stepper" id="stepper-main">
+        <div class="step-item active" id="step-ui-1">
+          <div class="step-dot">1</div>
+          <div class="step-label">Subir</div>
         </div>
-        <div class="stepper d-flex gap-2">
-          <span class="badge rounded-pill bg-primary px-3">1. Subir</span>
-          <span class="badge rounded-pill bg-light text-muted px-3 border">2. Validar</span>
-          <span class="badge rounded-pill bg-light text-muted px-3 border">3. Confirmar</span>
+        <div class="step-line"></div>
+        <div class="step-item" id="step-ui-2">
+          <div class="step-dot">2</div>
+          <div class="step-label">Validar</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" id="step-ui-3">
+          <div class="step-dot">3</div>
+          <div class="step-label">Confirmar</div>
         </div>
       </div>
 
       <!-- PASO 1: SUBIR -->
       <div id="paso-1" class="paso">
-        <div class="paso-container text-center">
-          <div class="dropzone mb-4" id="dropzone">
-            <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 4rem;"></i>
-            <h4 class="fw-bold mt-3">Arrastra tu PDF aquí</h4>
-            <p class="text-muted">O haz clic para seleccionar desde tu computadora</p>
+        <div class="max-w-600">
+          <div class="mac-dropzone text-center shadow-sm" id="dropzone">
+            <div class="mb-3">
+              <i class="bi bi-file-earmark-arrow-up text-primary" style="font-size: 3.5rem;"></i>
+            </div>
+            <h4 class="fw-bold">Arrastra tu PDF</h4>
+            <p class="text-secondary px-4">Selecciona el oficio oficial para iniciar el procesamiento automático de metadatos.</p>
             <input type="file" id="pdf-input" class="d-none" accept="application/pdf">
           </div>
-          <div class="alert alert-info border-0 shadow-sm d-inline-block px-4">
-            <i class="bi bi-info-circle-fill me-2"></i> Se recomienda resolución de <strong>300 DPI</strong> para mejor precisión del OCR.
+          <div class="mt-4 text-center">
+            <div class="alert bg-white border-0 shadow-sm rounded-4 d-inline-flex align-items-center px-4 py-2 small">
+              <i class="bi bi-info-circle text-primary me-2"></i> Resolución recomendada: <strong>300 DPI</strong>.
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- PASO 2: VALIDAR (SPLIT VIEW) -->
+      <!-- PASO 2: VALIDAR -->
       <div id="paso-2" class="paso d-none">
         <div class="row g-4">
-          <!-- Columna Izquierda: Visor -->
           <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-              <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                <span class="small fw-bold"><i class="bi bi-file-pdf me-2"></i> VISTA PREVIA DEL DOCUMENTO</span>
-                <button class="btn btn-sm btn-outline-light border-0" onclick="cambiarPaso(1)"><i class="bi bi-arrow-left"></i> Cambiar archivo</button>
+            <div class="mac-card h-100 mb-0">
+              <div class="mac-card-header">
+                <span class="small fw-semibold">VISOR DE DOCUMENTO</span>
+                <div class="traffic-lights">
+                  <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" onclick="cambiarPaso(1)">Cambiar</button>
+                  <div class="dot red"></div>
+                  <div class="dot yellow"></div>
+                  <div class="dot green"></div>
+                </div>
               </div>
-              <iframe id="pdf-viewer" class="visor-pdf"></iframe>
+              <iframe id="pdf-viewer" class="w-100 border-0" style="height: 70vh;"></iframe>
             </div>
           </div>
           
-          <!-- Columna Derecha: Validación de Datos -->
           <div class="col-lg-5">
-            <div class="paso-container h-100">
+            <div class="mac-card h-100 mb-0 p-4">
               <div class="d-flex align-items-center gap-2 mb-4">
-                <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
-                  <i class="bi bi-clipboard-check"></i>
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
+                  <i class="bi bi-clipboard-check small"></i>
                 </div>
                 <h5 class="fw-bold mb-0">Metadatos Detectados</h5>
               </div>
 
               <form id="form-datos">
-                <div class="mb-3">
-                  <label class="form-label small fw-bold text-muted">REMITENTE / INSTITUCIÓN</label>
-                  <input type="text" id="campo-remitente" class="form-control" placeholder="Nombre de la dependencia">
+                <div class="mb-4">
+                  <label class="form-label small fw-semibold text-secondary">REMITENTE / INSTITUCIÓN</label>
+                  <input type="text" id="campo-remitente" class="mac-input" placeholder="Nombre de la dependencia">
                 </div>
                 
-                <div class="mb-3">
-                  <label class="form-label small fw-bold text-muted">NÚMERO DE OFICIO</label>
-                  <input type="text" id="campo-oficio" class="form-control" placeholder="Ej: SEGOB/045/2026">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small fw-bold text-muted">ASUNTO / SÍNTESIS</label>
-                  <textarea id="campo-asunto" class="form-control" rows="4" placeholder="Breve descripción del contenido"></textarea>
+                <div class="mb-4">
+                  <label class="form-label small fw-semibold text-secondary">NÚMERO DE OFICIO</label>
+                  <input type="text" id="campo-oficio" class="mac-input" placeholder="Ej: SEGOB/045/2026">
                 </div>
 
                 <div class="mb-4">
-                  <label class="form-label small fw-bold text-muted">NIVEL DE URGENCIA</label>
-                  <select id="campo-urgencia" class="form-select">
-                    <option value="Normal">🟢 Normal</option>
-                    <option value="Alta">🔴 Alta / Prioritario</option>
+                  <label class="form-label small fw-semibold text-secondary">ASUNTO / SÍNTESIS</label>
+                  <textarea id="campo-asunto" class="mac-input" rows="4" placeholder="Breve descripción..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label small fw-semibold text-secondary">NIVEL DE URGENCIA</label>
+                  <select id="campo-urgencia" class="mac-input">
+                    <option value="Normal">Normal</option>
+                    <option value="Alta">Alta / Prioritario</option>
                   </select>
                 </div>
 
-                <div class="d-grid gap-2">
-                  <button type="button" class="btn btn-primary" onclick="cambiarPaso(3)">
-                    Revisar y Continuar <i class="bi bi-arrow-right ms-2"></i>
+                <div class="d-grid mt-2">
+                  <button type="button" class="apple-btn apple-btn-primary" onclick="cambiarPaso(3)">
+                    Revisar y Continuar
                   </button>
                 </div>
               </form>
@@ -216,27 +240,27 @@
 
       <!-- PASO 3: CONFIRMAR -->
       <div id="paso-3" class="paso d-none">
-        <div class="paso-container text-center max-w-600 mx-auto">
+        <div class="max-w-600 text-center">
           <div class="mb-4">
-            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 4.5rem;"></i>
           </div>
-          <h3 class="fw-bold">¿Todo correcto?</h3>
-          <p class="text-muted mb-4">Al confirmar, el documento se almacenará en Google Drive y se generará el folio oficial en el Libro de Gobierno.</p>
+          <h3 class="fw-bold">Confirmar Registro</h3>
+          <p class="text-secondary mb-5">Verifica los datos antes de indexarlos en el Libro de Gobierno oficial.</p>
           
-          <div class="card bg-light border-0 text-start p-4 mb-4 rounded-4">
-            <div class="row">
-              <div class="col-4 fw-bold text-muted small">REMITENTE:</div>
-              <div id="res-remitente" class="col-8 mb-2">---</div>
-              <div class="col-4 fw-bold text-muted small">OFICIO:</div>
-              <div id="res-oficio" class="col-8 mb-2">---</div>
-              <div class="col-4 fw-bold text-muted small">URGENCIA:</div>
+          <div class="mac-card text-start p-4 mb-5">
+            <div class="row g-3">
+              <div class="col-4 text-secondary small fw-medium">REMITENTE</div>
+              <div id="res-remitente" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">OFICIO</div>
+              <div id="res-oficio" class="col-8">---</div>
+              <div class="col-4 text-secondary small fw-medium">URGENCIA</div>
               <div id="res-urgencia" class="col-8">---</div>
             </div>
           </div>
 
           <div class="d-flex justify-content-center gap-3">
-            <button class="btn btn-outline-secondary" onclick="cambiarPaso(2)">Regresar a editar</button>
-            <button class="btn btn-success px-5" onclick="registrarOficioFinal()">Confirmar y Registrar</button>
+            <button class="apple-btn apple-btn-secondary px-5" onclick="cambiarPaso(2)">Regresar</button>
+            <button class="apple-btn apple-btn-primary px-5" onclick="registrarOficioFinal()">Confirmar y Registrar</button>
           </div>
         </div>
       </div>
@@ -244,36 +268,39 @@
 
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
-      <h2 class="fw-bold mb-4">Biblioteca de Expedientes</h2>
-      <div class="glass-card p-4 mb-4">
-        <div class="input-group input-group-lg shadow-sm">
-          <span class="input-group-text border-0 bg-transparent"><i class="bi bi-search text-primary"></i></span>
-          <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent" placeholder="Buscar por remitente, asunto o folio...">
+      <h1 class="fw-bold mb-4">Biblioteca</h1>
+      <div class="mac-card p-2 mb-4">
+        <div class="input-group">
+          <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
+          <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-3" placeholder="Buscar expedientes...">
         </div>
       </div>
 
-      <div class="glass-card p-5 text-center" id="empty-search">
-        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
-        <h4 class="mt-3">Buscador Histórico</h4>
-        <p class="text-muted">Empieza a escribir para filtrar la base de datos en tiempo real.</p>
+      <div class="text-center py-5" id="empty-search">
+        <i class="bi bi-search text-secondary opacity-25" style="font-size: 4rem;"></i>
+        <h4 class="mt-3 fw-semibold">Buscador Histórico</h4>
+        <p class="text-secondary">Escribe para buscar en la base de datos central.</p>
       </div>
     </div>
 
   </main>
 
-  <!-- LOADER GLOBAL -->
-  <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index:9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
-    <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
-    <div id="loader-message" class="loader-text h5 fw-bold mb-1">Procesando...</div>
-    <div id="loader-submessage" class="loader-subtext">Iniciando análisis del documento</div>
-    
-    <div class="progress-stepper">
-      <div id="loader-progress" class="progress-bar-fill"></div>
+  <!-- APPLE STYLE LOADER -->
+  <div id="global-loader" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:var(--sidebar-bg); backdrop-filter: blur(20px); z-index:9999; display: flex; align-items: center; justify-content: center;">
+    <div class="mac-loader-container">
+      <div class="mac-spinner"></div>
+      <div class="text-center">
+        <div id="loader-message" class="fw-bold h5 mb-1">Procesando</div>
+        <div id="loader-submessage" class="text-secondary small">Iniciando análisis...</div>
+      </div>
+      <div class="progress-stepper" style="width: 200px; height: 4px;">
+        <div id="loader-progress" class="progress-bar-fill"></div>
+      </div>
     </div>
   </div>
 
   <!-- TOAST CONTAINER -->
-  <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+  <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-4"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <?!= include('Scripts'); ?>
