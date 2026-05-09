@@ -62,7 +62,7 @@
     SELLO_PREFIX: 'DSA-AUTH-'
   };
 
-  var DSA_App = (function() {
+  window.DSA_App = (function() {
   /**
    * --- EVENT BUS (Pub/Sub Pattern - Tarea #4) ---
    * Descentraliza la lógica de respuesta ante cambios de estado.
@@ -1601,12 +1601,20 @@
   };
 })();
 
-// Punto de entrada único
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof DSA_App !== 'undefined' && DSA_App.init) {
-    DSA_App.init();
-    console.log("DSA_App: Inicialización completada.");
-  } else {
-    console.error("DSA_App: Fallo crítico al inicializar el objeto global.");
+// Punto de entrada único con protección contra estados de carga
+(function() {
+  function _main() {
+    if (typeof window.DSA_App !== 'undefined' && window.DSA_App.init) {
+      window.DSA_App.init();
+      console.log("DSA_App: Inicialización completada.");
+    } else {
+      console.error("DSA_App: Fallo crítico al inicializar el objeto global.");
+    }
   }
-});
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _main);
+  } else {
+    _main();
+  }
+})();
