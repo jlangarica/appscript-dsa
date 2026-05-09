@@ -9,8 +9,11 @@
     const originalWarn = console.warn;
     const originalError = console.error;
     const noisePatterns = [
-      'Feature Policy', 
-      'dropping postMessage', 
+      'Feature Policy',
+      'Saltándose una función',
+      'unsupported feature name',
+      'dropping postMessage',
+      'was from host', 
       'accelerometer', 
       'gyroscope', 
       'payment', 
@@ -32,6 +35,10 @@
   })();
   
   console.log("DSA_App: Iniciando carga de scripts...");
+
+  const DSA_BOOTSTRAP_QUEUE = Array.isArray(window.DSA_App?.__queue)
+    ? [...window.DSA_App.__queue]
+    : [];
 
   /**
    * UTILIDAD: Almacenamiento seguro para entornos restringidos (GAS Sandbox)
@@ -1636,10 +1643,25 @@
   function _main() {
     if (typeof window.DSA_App !== 'undefined' && window.DSA_App.init) {
       window.DSA_App.init();
+      _replayBootstrapQueue();
       console.log("DSA_App: Inicialización completada.");
     } else {
       console.error("DSA_App: Fallo crítico al inicializar el objeto global.");
     }
+  }
+
+  function _replayBootstrapQueue() {
+    if (!DSA_BOOTSTRAP_QUEUE.length || !window.DSA_App) return;
+
+    DSA_BOOTSTRAP_QUEUE.splice(0).forEach(({ method, args }) => {
+      const fn = window.DSA_App[method];
+      if (typeof fn !== 'function') return;
+      try {
+        fn.apply(window.DSA_App, args);
+      } catch (error) {
+        console.error(`DSA_App: error al reproducir acción encolada ${method}`, error);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
