@@ -45,6 +45,23 @@
     }
   };
 
+  /**
+   * CONSTANTES DE SISTEMA (UX & Performance)
+   */
+  const TIMING = {
+    TRANSITION: 400,
+    DEBOUNCE: 300,
+    TOAST: 5000,
+    HEARTBEAT: 30000,
+    LOADER_MIN: 800
+  };
+
+  const DSA_CONFIG = {
+    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    DEFAULT_OFFSET: 50,
+    SELLO_PREFIX: 'DSA-AUTH-'
+  };
+
   var DSA_App = (function() {
   /**
    * --- EVENT BUS (Pub/Sub Pattern - Tarea #4) ---
@@ -108,7 +125,7 @@
   });
 
   EventBus.on('change:isSidebarCollapsed', (value) => {
-    const sidebar = document.querySelector('.mac-sidebar');
+    const sidebar = document.querySelector('.dsa-sidebar');
     const icon = document.getElementById('sidebar-icon');
     const label = document.querySelector('[onclick="DSA_App.toggleSidebar()"] span');
     if (sidebar) sidebar.classList.toggle('collapsed', value);
@@ -128,6 +145,11 @@
     _actualizarBreadcrumb(value);
   });
 
+  /**
+   * Actualiza el breadcrumb institucional basado en la vista activa.
+   * @param {string} idVista - ID de la vista (v-dashboard, etc.)
+   * @private
+   */
   function _actualizarBreadcrumb(idVista) {
     const breadcrumb = document.getElementById('app-breadcrumb');
     if (!breadcrumb) return;
@@ -140,6 +162,11 @@
     breadcrumb.innerHTML = routes[idVista] || 'Inicio';
   }
 
+  /**
+   * Gestiona la visibilidad de los contenedores de vista y el estado del sidebar.
+   * @param {string} idVista - ID de la vista a activar.
+   * @private
+   */
   function _actualizarNavegacion(idVista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.add('d-none'));
     const target = document.getElementById(idVista);
@@ -147,7 +174,7 @@
       target.classList.remove('d-none');
       
       // Actualizar sidebar active state
-      document.querySelectorAll('.mac-nav-link').forEach(link => {
+      document.querySelectorAll('.dsa-nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('onclick')?.includes(idVista)) {
           link.classList.add('active');
@@ -157,7 +184,10 @@
   }
 
 
-  // --- INICIALIZACIÓN ---
+  /**
+   * Inicializa los componentes básicos del sistema y carga datos iniciales.
+   * @public
+   */
   function init() {
     cambiarVista('v-dashboard');
     initDragAndDrop();
@@ -174,11 +204,11 @@
     // Escuchar búsqueda en biblioteca
     const searchInput = document.getElementById('filtro-texto');
     if (searchInput) {
-      searchInput.addEventListener('input', _debounce(() => aplicarFiltrosBiblioteca(), 300));
+      searchInput.addEventListener('input', _debounce(() => aplicarFiltrosBiblioteca(), TIMING.DEBOUNCE));
     }
 
     // Auto-resize textareas (Fluid Apple Style)
-    document.querySelectorAll('textarea.mac-input').forEach(el => {
+    document.querySelectorAll('textarea.dsa-input').forEach(el => {
       // Definir altura base
       el.style.height = el.scrollHeight + 'px'; 
       el.addEventListener('input', function() {
@@ -224,7 +254,7 @@
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('scroll', () => {
-          const topBar = document.querySelector('.mac-topbar');
+          const topBar = document.querySelector('.dsa-topbar');
           if (el.scrollTop > 10) topBar?.classList.add('sticky-scrolled');
           else topBar?.classList.remove('sticky-scrolled');
         });
@@ -273,10 +303,10 @@
     });
 
     if (AppState.isSidebarCollapsed) {
-      document.querySelector('.mac-sidebar')?.classList.add('collapsed');
+      document.querySelector('.dsa-sidebar')?.classList.add('collapsed');
       const icon = document.getElementById('sidebar-icon');
       if (icon) icon.classList.add('bi-layout-sidebar-reverse');
-      const label = document.querySelector('[onclick="toggleSidebar()"] span');
+      const label = document.querySelector('[onclick="DSA_App.toggleSidebar()"] span');
       if (label) label.innerText = 'Expandir';
     }
 
@@ -296,12 +326,12 @@
           })
           .checarActualizaciones();
       }
-    }, 30000);
+    }, TIMING.HEARTBEAT);
   }
 
   /**
-   * --- EVENT DELEGATION (Tarea #3) ---
-   * Un solo listener para toda la tabla de biblioteca.
+   * Centraliza el manejo de clics en la tabla para optimizar rendimiento.
+   * @private
    */
   function _initEventDelegation() {
     const tbody = document.getElementById('tabla-biblioteca-body');
@@ -318,7 +348,11 @@
   }
 
 
-  // --- ENRUTADOR ---
+  /**
+   * Gestiona el cambio de vista con transiciones nativas o fallback.
+   * @param {string} idVista - ID de la vista destino.
+   * @public
+   */
   function cambiarVista(idVista) {
     if (AppState.vistaActual === idVista) return;
 
@@ -344,7 +378,11 @@
     });
   }
 
-  // --- NAVEGACIÓN DEL WIZARD (Pasos) ---
+  /**
+   * Controla la navegación del Wizard de registro.
+   * @param {number} numeroPaso - Número de paso (1, 2 o 3).
+   * @public
+   */
   function cambiarPaso(numeroPaso) {
     document.querySelectorAll('.paso').forEach(p => p.classList.add('d-none'));
     const target = document.getElementById(`paso-${numeroPaso}`);
@@ -400,7 +438,10 @@
     }
   }
 
-  // --- GESTOR DE DOCUMENTOS ---
+  /**
+   * Inicializa los eventos de drag & drop para el dropzone de registro.
+   * @public
+   */
   function initDragAndDrop() {
     const dropzone = document.getElementById('dropzone');
     const input = document.getElementById('pdf-input');
@@ -450,10 +491,14 @@
     });
   }
 
+  /**
+   * Procesa el archivo seleccionado, valida tamaño y prepara transferencia.
+   * @param {File} file - Objeto de archivo PDF.
+   * @public
+   */
   function handleFile(file) {
     // Validación de Tamaño (10MB límite para evitar errores de payload en GAS)
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    if (file.size > MAX_SIZE) {
+    if (file.size > DSA_CONFIG.MAX_FILE_SIZE) {
       showToast('Archivo demasiado grande', 'El PDF supera los 10MB. Por favor optimiza el archivo antes de subirlo.', 'warning');
       return;
     }
@@ -527,6 +572,11 @@
     }, speed);
   }
 
+  /**
+   * Envía el documento al motor de IA para extracción de metadatos.
+   * Implementa un sistema de progreso por etapas para UX fluida.
+   * @private
+   */
   function procesarDocumento() {
     AppState.isProcessing = true;
     
@@ -600,6 +650,11 @@
       .procesarDocumento(AppState.pdfBase64, AppState.pdfFile.name);
   }
 
+  /**
+   * Puebla los campos del formulario con los datos extraídos por la IA.
+   * @param {Object} data - Metadatos extraídos.
+   * @private
+   */
   function poblarFormulario(data) {
     _typewriteInput(document.getElementById('campo-titular'), data.titular || '');
     _typewriteInput(document.getElementById('campo-area'), data.area || '');
@@ -700,6 +755,10 @@
       .registrarOficioFinalizado(data, AppState.pdfBase64, AppState.pdfFile.name);
   }
 
+  /**
+   * Resetea el estado del formulario de registro y vuelve al paso 1.
+   * @public
+   */
   function resetForm() {
     AppState.pasoActual = 1;
     AppState.pdfFile = null;
@@ -717,9 +776,14 @@
 
   // --- GESTOR DE INICIO (DASHBOARD) ---
 
+  /**
+   * Solicita estadísticas operativas al servidor y actualiza la UI del Dashboard.
+   * @param {boolean} [silent=false] - Si es true, no muestra skeletons durante la carga.
+   * @public
+   */
   function cargarEstadisticasInicio(silent = false) {
     if (!silent) {
-      // ✅ Mostrar skeletons en stats mientras carga (Innovación #15)
+      // ✅ Mostrar skeletons en stats mientras carga
       ['stat-total', 'stat-pendientes', 'stat-urgentes', 'stat-hoy'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = '<div class="skeleton-box" style="width: 48px; height: 1.75rem; border-radius: 6px;"></div>';
@@ -764,6 +828,11 @@
       .obtenerEstadisticas();
   }
 
+  /**
+   * Renderiza las filas de actividad reciente en el Dashboard.
+   * @param {Array} recientes - Lista de objetos de registro.
+   * @private
+   */
   function _renderizarRecientes(recientes) {
     const tbody = document.getElementById('tabla-recientes-body');
     if (!tbody) return;
@@ -788,6 +857,12 @@
 
   // --- FILTROS ELITE (Chips) ---
 
+  /**
+   * Gestiona la activación de chips de filtrado y dispara la búsqueda.
+   * @param {string} tipo - Tipo de filtro (prioridad, tipo, respuesta).
+   * @param {string} valor - Valor seleccionado.
+   * @public
+   */
   function seleccionarChip(tipo, valor) {
     const container = document.getElementById(`chip-${tipo}`);
     if (!container) return;
@@ -810,15 +885,18 @@
 
   // --- GESTOR DE DETALLE (Master-Detail) ---
 
+  /**
+   * Muestra el panel de detalle lateral con la información completa de un registro.
+   * @param {number} index - Índice del registro en AppState.bibliotecaData.
+   * @public
+   */
   function mostrarDetalleOficio(index) {
     const reg = AppState.bibliotecaData[index];
     if (!reg) return;
 
     const detailPanel = document.getElementById('biblio-detail');
-    const masterPanel = document.getElementById('biblio-master');
     
     // Poblar datos
-    // Actualizar Header (usando clases para evitar duplicidad de IDs)
     const headerAsunto = document.querySelector('.det-asunto-header');
     const headerTitular = document.querySelector('.det-titular-header');
     if (headerAsunto) headerAsunto.innerText = reg.asunto || "Sin asunto";
@@ -864,6 +942,10 @@
     }
   }
 
+  /**
+   * Oculta el panel de detalle y limpia el estado visual de la tabla.
+   * @public
+   */
   function cerrarDetalle() {
     document.getElementById('det-content').classList.add('d-none');
     document.getElementById('det-empty-state').classList.remove('d-none');
@@ -873,6 +955,10 @@
   // --- MENÚ CONTEXTUAL (Tarea #5) ---
   let _contextMenuInicializado = false;
 
+  /**
+   * Inicializa el menú contextual personalizado para las filas de la biblioteca.
+   * @public
+   */
   function initContextMenu() {
     if (_contextMenuInicializado) return;
     const menu = document.getElementById('context-menu');
@@ -946,6 +1032,11 @@
 
   // --- GESTOR DE RESPUESTAS ---
 
+  /**
+   * Abre el panel slide-over para redactar una respuesta oficial.
+   * @param {number} index - Índice del oficio a responder.
+   * @public
+   */
   function abrirPanelRespuesta(index) {
     const oficio = AppState.bibliotecaData[index];
     if (!oficio) return;
@@ -969,6 +1060,10 @@
     }, 10);
   }
 
+  /**
+   * Cierra el panel de respuesta con animación de salida.
+   * @public
+   */
   function cerrarPanelRespuesta() {
     const panel = document.getElementById('panel-respuesta');
     const overlay = document.getElementById('panel-overlay');
@@ -977,9 +1072,15 @@
     setTimeout(() => {
       panel.classList.add('d-none');
       overlay.classList.add('d-none');
-    }, 400);
+    }, TIMING.TRANSITION);
   }
 
+  /**
+   * Envía la solicitud de generación de respuesta al servidor.
+   * @param {boolean} asistido - Si true, utiliza el motor de IA avanzado.
+   * @param {Event} e - Evento de clic (para capturar el botón).
+   * @public
+   */
   function ejecutarGeneracion(asistido, e) {
     const notas = document.getElementById('resp-notas').value;
     if (!notas.trim()) {
@@ -1016,7 +1117,6 @@
           } else {
             const msg = res ? res.message : "Respuesta vacía del servidor";
             showToast('Error de Generación', msg, 'danger');
-            alert("Error al generar: " + msg); // Alerta de respaldo si el toast falla
           }
         } catch (e) {
           console.error("Error en success handler:", e);
@@ -1029,13 +1129,17 @@
         console.error("Fallo crítico en EjecutarGeneracion:", err);
         const msg = err ? err.message : "Error desconocido de red";
         showToast('Error Crítico', msg, 'danger');
-        alert("Fallo crítico: " + msg);
       })
       .generarRespuestaOficio(payload);
   }
 
   // --- GESTOR DE BIBLIOTECA ---
 
+  /**
+   * Carga los registros de la biblioteca desde el servidor.
+   * @param {boolean} [append=false] - Si true, añade los datos a la lista existente (paginación).
+   * @public
+   */
   function cargarBiblioteca(append = false) {
     if (!append) {
       AppState.bibliotecaOffset = 0;
@@ -1084,11 +1188,15 @@
         console.error("Error de red/GAS en cargarBiblioteca:", err);
         showToast('Error de Servidor', err.message, 'danger');
       })
-      .obtenerRegistros(AppState.bibliotecaOffset, 50, AppState.bibliotecaFiltros);
+      .obtenerRegistros(AppState.bibliotecaOffset, DSA_CONFIG.DEFAULT_OFFSET, AppState.bibliotecaFiltros);
   }
 
+  /**
+   * Carga la siguiente página de registros de la biblioteca.
+   * @public
+   */
   function cargarSiguientePagina() {
-    AppState.bibliotecaOffset += 50;
+    AppState.bibliotecaOffset += DSA_CONFIG.DEFAULT_OFFSET;
     cargarBiblioteca(true);
   }
 
@@ -1126,6 +1234,11 @@
     seleccionarChip('respuesta', '');
   }
 
+  /**
+   * Renderiza las filas de la tabla de biblioteca con los datos proporcionados.
+   * @param {Array} data - Lista de objetos de registro.
+   * @public
+   */
   function renderizarTablaBiblioteca(data) {
     const tbody = document.getElementById('tabla-biblioteca-body');
     if (!tbody) return;
@@ -1213,6 +1326,12 @@
   /**
    * Escapa HTML nativo para evitar XSS.
    */
+  /**
+   * Resalta el texto que coincide con el filtro de búsqueda.
+   * @param {string} texto - Texto original.
+   * @returns {string} - Texto con etiquetas <mark> si hay coincidencia.
+   * @private
+   */
   function _resaltar(texto) {
     if (!texto) return '';
     const filtro = document.getElementById('filtro-texto')?.value?.trim();
@@ -1221,7 +1340,7 @@
     const escapedText = _escaparHTML(texto);
     try {
       const regex = new RegExp(`(${_escaparHTML(filtro)})`, 'gi');
-      return escapedText.replace(regex, '<mark class="mac-highlight">$1</mark>');
+      return escapedText.replace(regex, '<mark class="dsa-highlight">$1</mark>');
     } catch(e) {
       return escapedText;
     }
@@ -1249,12 +1368,12 @@
    * --- COMMAND PALETTE (Innovación #19) ---
    */
   let _commands = [
-    { icon: 'bi-house-door', label: 'Ir al Inicio', action: () => cambiarVista('v-dashboard'), shortcut: '⌘1' },
-    { icon: 'bi-file-earmark-plus', label: 'Nuevo Registro', action: () => cambiarVista('v-registro'), shortcut: '⌘2' },
-    { icon: 'bi-collection', label: 'Ver Acervo / Biblioteca', action: () => cambiarVista('v-archivo'), shortcut: '⌘3' },
-    { icon: 'bi-moon-stars', label: 'Cambiar Tema (Oscuro/Claro)', action: () => toggleTheme(), shortcut: 'Cmd+Shift+L' },
-    { icon: 'bi-layout-sidebar', label: 'Contraer/Expandir Sidebar', action: () => toggleSidebar(), shortcut: 'Cmd+B' },
-    { icon: 'bi-printer', label: 'Imprimir página actual', action: () => window.print(), shortcut: '⌘P' }
+    { icon: 'bi-house-door', label: 'Ir al Inicio', action: () => cambiarVista('v-dashboard'), shortcut: '⌘1', category: 'Navegación' },
+    { icon: 'bi-file-earmark-plus', label: 'Nuevo Registro', action: () => cambiarVista('v-registro'), shortcut: '⌘2', category: 'Operaciones' },
+    { icon: 'bi-collection', label: 'Ver Acervo / Biblioteca', action: () => cambiarVista('v-archivo'), shortcut: '⌘3', category: 'Navegación' },
+    { icon: 'bi-moon-stars', label: 'Cambiar Tema (Oscuro/Claro)', action: () => toggleTheme(), shortcut: 'Cmd+Shift+L', category: 'Preferencias' },
+    { icon: 'bi-layout-sidebar', label: 'Contraer/Expandir Sidebar', action: () => toggleSidebar(), shortcut: 'Cmd+B', category: 'Preferencias' },
+    { icon: 'bi-printer', label: 'Imprimir página actual', action: () => window.print(), shortcut: '⌘P', category: 'Sistema' }
   ];
 
   function _toggleCommandPalette() {
@@ -1265,8 +1384,17 @@
       overlay.className = 'cmd-palette-overlay d-none';
       overlay.innerHTML = `
         <div class="cmd-palette">
+          <div class="cmd-palette-header px-3 py-2 border-bottom d-flex align-items-center">
+            <i class="bi bi-terminal text-primary me-2"></i>
+            <span class="small fw-bold text-secondary">COMANDOS DSA</span>
+          </div>
           <input type="text" class="cmd-palette-input" placeholder="¿Qué deseas hacer?" id="cmd-input">
           <div class="cmd-palette-results" id="cmd-results"></div>
+          <div class="cmd-palette-footer p-2 border-top bg-light small text-secondary d-flex justify-content-center gap-3" style="font-size: 0.6rem;">
+            <span><kbd>↵</kbd> Ejecutar</span>
+            <span><kbd>↑↓</kbd> Navegar</span>
+            <span><kbd>ESC</kbd> Cerrar</span>
+          </div>
         </div>
       `;
       document.body.appendChild(overlay);
@@ -1303,8 +1431,15 @@
     
     results.innerHTML = filtered.map((c, idx) => `
       <div class="cmd-item ${idx === 0 ? 'selected' : ''}" onclick="DSA_App._executeCommand(${_commands.indexOf(c)})">
-        <i class="${c.icon}"></i>
-        <span>${c.label}</span>
+        <div class="d-flex align-items-center gap-3">
+          <div class="cmd-icon-box bg-primary-subtle text-primary rounded-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+            <i class="${c.icon}"></i>
+          </div>
+          <div class="d-flex flex-column">
+            <span class="fw-medium">${c.label}</span>
+            <span class="text-secondary" style="font-size: 0.65rem;">${c.category}</span>
+          </div>
+        </div>
         <span class="cmd-shortcut">${c.shortcut}</span>
       </div>
     `).join('');
@@ -1326,6 +1461,13 @@
     };
   }
 
+  /**
+   * Controla la visibilidad y el estado del loader global institucional.
+   * @param {boolean} show - Si true, muestra el loader.
+   * @param {string} [message="Procesando..."] - Mensaje principal.
+   * @param {string} [submessage=""] - Mensaje secundario detallado.
+   * @public
+   */
   function toggleTheme() {
     AppState.isDark = !AppState.isDark;
   }
@@ -1349,7 +1491,7 @@
       loader.style.visibility = 'hidden';
       setTimeout(() => {
         if (loader.style.opacity === '0') loader.classList.add('d-none');
-      }, 400);
+      }, TIMING.TRANSITION);
     }
 
     const msgEl = document.getElementById('loader-message');
@@ -1367,6 +1509,13 @@
     }
   }
 
+  /**
+   * Muestra una notificación tipo Toast con estética Apple y feedback semántico.
+   * @param {string} title - Título de la notificación.
+   * @param {string} message - Cuerpo del mensaje.
+   * @param {string} [type='info'] - Tipo semántico (success, danger, warning, info).
+   * @public
+   */
   function showToast(title, message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;
@@ -1377,27 +1526,24 @@
     const existing = toastContainer.querySelectorAll('[id^="toast-"]');
     const offset = existing.length * 12; // 12px de offset por toast existente
 
-    // Mapeo de colores Apple
-    const colors = {
-      'success': '#34c759',
-      'danger': '#ff3b30',
-      'warning': '#ff9500',
-      'info': '#007aff'
+    // Mapeo de colores y iconos Apple
+    const config = {
+      'success': { color: '#34c759', icon: 'bi-check-circle-fill' },
+      'danger': { color: '#ff3b30', icon: 'bi-exclamation-octagon-fill' },
+      'warning': { color: '#ff9500', icon: 'bi-exclamation-triangle-fill' },
+      'info': { color: '#007aff', icon: 'bi-info-circle-fill' }
     };
     
-    const color = colors[type] || colors.info;
+    const { color, icon } = config[type] || config.info;
     
     const html = `
-      <div id="${id}" class="mb-3" style="width: 320px; border-left: 4px solid ${color}; 
-           background: var(--card-bg); backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
-           border-radius: 12px; border: 1px solid var(--separator); border-left-width: 4px;
-           box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
-           transform: translateY(${offset}px);
-           transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
-           animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div id="${id}" class="mb-3 dsa-toast" style="border-left-color: ${color}; transform: translateY(${offset}px);">
         <div class="p-3">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="fw-bold small" style="color: ${color}; letter-spacing: 0.5px;">${title.toUpperCase()}</span>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi ${icon}" style="color: ${color};"></i>
+              <span class="fw-bold small" style="color: ${color}; letter-spacing: 0.5px;">${title.toUpperCase()}</span>
+            </div>
             <button type="button" class="btn-close small" style="font-size: 0.7rem; opacity: 0.5;" onclick="document.getElementById('${id}').remove()"></button>
           </div>
           <div class="text-secondary small" style="line-height: 1.4;">${message}</div>
@@ -1413,17 +1559,21 @@
         el.classList.add('toast-exit');
         setTimeout(() => el.remove(), 300);
       }
-    }, 5000);
+    }, TIMING.TOAST);
   }
 
 
   /**
    * Detecta el Sistema Operativo para ajustar los atajos de teclado (UX).
    */
+  /**
+   * Detecta el Sistema Operativo para ajustar los atajos de teclado (UX).
+   * @private
+   */
   function _detectarOS() {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     if (!isMac) {
-      document.querySelectorAll('.mac-kbd').forEach(el => {
+      document.querySelectorAll('.dsa-kbd').forEach(el => {
         el.innerText = 'Ctrl+K';
       });
     }
