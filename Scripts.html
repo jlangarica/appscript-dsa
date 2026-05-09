@@ -217,13 +217,17 @@ const DSA_App = (function() {
       }
     });
 
-    // Atajos de Teclado
+    // Atajos de Teclado (UX Legendaria)
     document.addEventListener('keydown', (e) => {
-      // Escape cierra el panel lateral
+      // Escape cierra el panel lateral o el command palette
       if (e.key === 'Escape') {
         const panel = document.getElementById('panel-respuesta');
         if (panel && !panel.classList.contains('d-none')) cerrarPanelRespuesta();
+        
+        const palette = document.getElementById('cmd-palette');
+        if (palette && !palette.classList.contains('d-none')) _toggleCommandPalette();
       }
+
       // Cmd+K o Ctrl+K enfoca el buscador
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -232,6 +236,25 @@ const DSA_App = (function() {
           const searchInput = document.getElementById('filtro-texto');
           if (searchInput) searchInput.focus();
         }, 150);
+      }
+
+      // Cmd+Shift+P para Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        _toggleCommandPalette();
+      }
+
+      // Cmd+1/2/3 para Cambiar Vistas
+      if ((e.metaKey || e.ctrlKey) && ['1','2','3'].includes(e.key)) {
+        e.preventDefault();
+        const vistas = ['v-dashboard', 'v-registro', 'v-archivo'];
+        cambiarVista(vistas[parseInt(e.key) - 1]);
+      }
+
+      // Cmd+N para Nuevo Registro
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        cambiarVista('v-registro');
       }
     });
 
@@ -468,6 +491,28 @@ const DSA_App = (function() {
     reader.readAsDataURL(file);
   }
 
+  /**
+   * Efecto Typewriter para campos poblados por IA (Innovación #18)
+   */
+  function _typewriteInput(el, value, speed = 20) {
+    if (!el) return;
+    el.value = '';
+    el.classList.add('ai-populating');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < value.length) {
+        el.value += value[i];
+        i++;
+        // Auto-scroll en textareas
+        if (el.tagName === 'TEXTAREA') el.dispatchEvent(new Event('input'));
+      } else {
+        clearInterval(interval);
+        el.classList.remove('ai-populating');
+        el.dispatchEvent(new Event('change'));
+      }
+    }, speed);
+  }
+
   function procesarDocumento() {
     AppState.isProcessing = true;
     
@@ -542,20 +587,14 @@ const DSA_App = (function() {
   }
 
   function poblarFormulario(data) {
-    document.getElementById('campo-titular').value = _escaparHTML(data.titular) || '';
-    document.getElementById('campo-area').value = _escaparHTML(data.area) || '';
-    document.getElementById('campo-oficio').value = _escaparHTML(data.oficio) || '';
-    document.getElementById('campo-asunto').value = _escaparHTML(data.asunto) || '';
+    _typewriteInput(document.getElementById('campo-titular'), data.titular || '');
+    _typewriteInput(document.getElementById('campo-area'), data.area || '');
+    _typewriteInput(document.getElementById('campo-oficio'), data.oficio || '');
+    _typewriteInput(document.getElementById('campo-asunto'), data.asunto || '');
+    
     document.getElementById('campo-tipo-doc').value = data.tipo_doc || 'Informativo';
     document.getElementById('campo-urgencia').value = data.urgencia || 'Normal';
     document.getElementById('campo-requiere-respuesta').checked = !!data.requiere_respuesta;
-    
-    // Disparar auto-resize para textareas poblados
-    setTimeout(() => {
-      document.querySelectorAll('textarea.mac-input').forEach(el => {
-        el.dispatchEvent(new Event('input'));
-      });
-    }, 100);
   }
 
   // --- CONFIRMACIÓN FINAL ---
@@ -613,10 +652,11 @@ const DSA_App = (function() {
                   <div class="col-5 text-secondary small fw-medium">Asunto:</div>
                   <div class="col-7 small">${_escaparHTML(data.asunto)}</div>
                 </div>
-                <div class="pt-3 border-top">
+                <div class="pt-3 border-top d-flex align-items-center justify-content-between">
                    <p class="small text-secondary mb-0" style="font-size: 0.6rem; word-break: break-all;">
-                     <strong>Sello Digital:</strong> ${AppState.uploadId || 'SEC-AUTH-' + Math.random().toString(36).substr(2, 9)}
+                     <strong>Sello Digital:</strong> ${_generarSelloVisual(AppState.uploadId || 'SEC-AUTH-' + Math.random().toString(36).substr(2, 9))}
                    </p>
+                   <div class="ms-2"><i class="bi bi-qr-code text-secondary opacity-50" style="font-size: 1.5rem;"></i></div>
                 </div>
               </div>
               <div class="d-flex justify-content-center gap-3 mt-5 no-print">
@@ -665,7 +705,11 @@ const DSA_App = (function() {
 
   function cargarEstadisticasInicio(silent = false) {
     if (!silent) {
-      // Opcional: mostrar un mini loader o skeleton si no es carga silenciosa
+      // ✅ Mostrar skeletons en stats mientras carga (Innovación #15)
+      ['stat-total', 'stat-pendientes', 'stat-urgentes', 'stat-hoy'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div class="skeleton-box" style="width: 48px; height: 1.75rem; border-radius: 6px;"></div>';
+      });
     }
 
     google.script.run
@@ -1177,6 +1221,87 @@ const DSA_App = (function() {
   }
 
   /**
+   * Genera un hash visual (firma QR-like) para el acuse (Innovación #20)
+   */
+  function _generarSelloVisual(uploadId) {
+    if (!uploadId) return '';
+    const hash = uploadId.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0);
+    const hue = Math.abs(hash % 360);
+    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:hsl(${hue},75%,55%);margin-right:4px;box-shadow: 0 0 5px hsl(${hue},75%,55%);"></span>
+            <code style="font-size:0.55rem;letter-spacing:1px;opacity:0.8;">${uploadId}</code>`;
+  }
+
+  /**
+   * --- COMMAND PALETTE (Innovación #19) ---
+   */
+  let _commands = [
+    { icon: 'bi-house-door', label: 'Ir al Inicio', action: () => cambiarVista('v-dashboard'), shortcut: '⌘1' },
+    { icon: 'bi-file-earmark-plus', label: 'Nuevo Registro', action: () => cambiarVista('v-registro'), shortcut: '⌘2' },
+    { icon: 'bi-collection', label: 'Ver Acervo / Biblioteca', action: () => cambiarVista('v-archivo'), shortcut: '⌘3' },
+    { icon: 'bi-moon-stars', label: 'Cambiar Tema (Oscuro/Claro)', action: () => toggleTheme(), shortcut: 'Cmd+Shift+L' },
+    { icon: 'bi-layout-sidebar', label: 'Contraer/Expandir Sidebar', action: () => toggleSidebar(), shortcut: 'Cmd+B' },
+    { icon: 'bi-printer', label: 'Imprimir página actual', action: () => window.print(), shortcut: '⌘P' }
+  ];
+
+  function _toggleCommandPalette() {
+    let overlay = document.getElementById('cmd-palette-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'cmd-palette-overlay';
+      overlay.className = 'cmd-palette-overlay d-none';
+      overlay.innerHTML = `
+        <div class="cmd-palette">
+          <input type="text" class="cmd-palette-input" placeholder="¿Qué deseas hacer?" id="cmd-input">
+          <div class="cmd-palette-results" id="cmd-results"></div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      const input = document.getElementById('cmd-input');
+      input.addEventListener('input', (e) => _filterCommands(e.target.value));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const first = document.querySelector('.cmd-item.selected') || document.querySelector('.cmd-item');
+          if (first) first.click();
+        }
+      });
+      
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) _toggleCommandPalette();
+      });
+    }
+
+    const isHidden = overlay.classList.contains('d-none');
+    if (isHidden) {
+      overlay.classList.remove('d-none');
+      const input = document.getElementById('cmd-input');
+      input.value = '';
+      input.focus();
+      _filterCommands('');
+    } else {
+      overlay.classList.add('d-none');
+    }
+  }
+
+  function _filterCommands(query) {
+    const results = document.getElementById('cmd-results');
+    const filtered = _commands.filter(c => c.label.toLowerCase().includes(query.toLowerCase()));
+    
+    results.innerHTML = filtered.map((c, idx) => `
+      <div class="cmd-item ${idx === 0 ? 'selected' : ''}" onclick="DSA_App._executeCommand(${_commands.indexOf(c)})">
+        <i class="${c.icon}"></i>
+        <span>${c.label}</span>
+        <span class="cmd-shortcut">${c.shortcut}</span>
+      </div>
+    `).join('');
+  }
+
+  function _executeCommand(idx) {
+    _toggleCommandPalette();
+    _commands[idx].action();
+  }
+
+  /**
    * Retrasa la ejecución de una función hasta que haya una pausa.
    */
   function _debounce(fn, delay) {
@@ -1307,7 +1432,8 @@ const DSA_App = (function() {
     ejecutarGeneracion,
     registrarOficioFinal,
     cambiarPaso,
-    validarYContinuar
+    validarYContinuar,
+    _executeCommand
   };
 })();
 
