@@ -135,7 +135,7 @@ function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('División de Servicios Administrativos')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
@@ -284,12 +284,13 @@ function llamarGeminiMultimodal(base64Data) {
     throw new Error(`Servicio Gemini no disponible (Error ${statusCode}).`);
   }
   if (statusCode >= 400) {
-    const errBody = JSON.parse(responseText);
+    const errBody = _parseJsonSeguro(responseText, {});
     throw new Error(`Gemini Error ${statusCode}: ${errBody?.error?.message || responseText}`);
   }
 
-  const result = JSON.parse(responseText);
+  const result = _parseJsonSeguro(responseText, null);
 
+  if (!result) throw new Error("Respuesta vacía o inválida del servicio Gemini.");
   if (result.error) throw new Error(`Gemini: ${result.error.message}`);
   
   if (!result.candidates || !result.candidates[0].content) {
@@ -349,6 +350,9 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   for (const campo of camposRequeridos) {
     if (!datosFinales[campo]) throw new Error(`El campo "${campo}" es obligatorio.`);
   }
+  datosFinales = _normalizarDocumentoMetadata(datosFinales);
+  fileName = _sanitizarNombreArchivo(fileName || `${datosFinales.oficio}.pdf`);
+  _validarPdfBase64(base64Data);
   const cache = CacheService.getScriptCache();
   
   // 0.1 Rate Limiting (Seguridad: Tarea #2)
@@ -361,7 +365,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   // 0.2 Idempotencia
   if (datosFinales.uploadId) {
     const cachedStatus = cache.get(`status_${datosFinales.uploadId}`);
-    if (cachedStatus) return JSON.parse(cachedStatus);
+    if (cachedStatus) return _parseJsonSeguro(cachedStatus, { success: false, message: "Estado idempotente inválido." });
   }
 
   let fileCreated = null; // Para rollback (Tarea #1)
@@ -385,8 +389,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
       if (!sheet) {
         sheet = ss.insertSheet(APP_CONSTANTS.RANGOS.HOJA_RECIBIDOS);
         const headers = ["FECHA", "TITULAR", "SECCIÓN (ÁREA)", "OFICIO", "ASUNTO", "SERIE DOCUMENTAL (CGCA)", "AÑOS RETENCIÓN", "FECHA TRANSFERENCIA", "PRIORIDAD", "RESPUESTA", "ESTATUS", "URL", "AUDITORÍA"];
-        sheet.appendRow(headers);
-        sheet.getRange(APP_CONSTANTS.RANGOS.RECIBIDOS_HEADERS).setBackground(APP_CONSTANTS.COLORES.HEADER_BG).setFontColor(APP_CONSTANTS.COLORES.HEADER_TEXT).setFontWeight("bold");
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+        sheet.getRange(1, 1, 1, headers.length)
+          .setBackground(APP_CONSTANTS.COLORES.HEADER_BG)
+          .setFontColor(APP_CONSTANTS.COLORES.HEADER_TEXT)
+          .setFontWeight("bold");
       }
 
       // Cálculo de CADIDO (Tarea #2 Archivística)
@@ -416,7 +423,7 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
         valueInputOption: "USER_ENTERED"
       });
     } finally {
-      lock.releaseLock();
+      try { lock.releaseLock(); } catch (e) { _log("WARN", "registrarOficioFinalizado", "No se pudo liberar lock", { error: e.toString() }); }
     }
 
     invalidarCaches();
@@ -466,7 +473,7 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
   
   if (cached) {
     console.log(`Sirviendo página ${offset} desde caché fragmentado.`);
-    return JSON.parse(cached);
+    return _parseJsonSeguro(cached, { success: false, message: "Caché inválido." });
   }
 
   console.log(`Cargando registros desde Sheets API v4...`);
@@ -557,6 +564,7 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
 function generarRespuestaOficio(datos) {
   console.log("Iniciando generación de respuesta...");
   try {
+    datos = _normalizarDatosRespuesta(datos);
     let contenidoFinal = datos.notasUsuario;
 
     // Si es redacción asistida, usamos Gemini para profesionalizar el texto
@@ -584,7 +592,7 @@ function generarRespuestaOficio(datos) {
 
     // 1. Clonar plantilla
     const plantilla = DriveApp.getFileById(CONFIG.TEMPLATE_DOC_ID);
-    const nombreArchivo = `RESPUESTA - ${datos.oficio} - ${datos.titular}`;
+    const nombreArchivo = _sanitizarNombreArchivo(`RESPUESTA - ${datos.oficio} - ${datos.titular}`);
     const copiaDoc = plantilla.makeCopy(nombreArchivo, DriveApp.getFolderById(CONFIG.FOLDER_GENERADOS_ID));
     
     // 2. Reemplazar placeholders en el documento
@@ -629,20 +637,22 @@ function registrarEnGenerados(datos, docUrl) {
     if (!sheet) {
       console.log("Creando pestaña Generados...");
       sheet = ss.insertSheet("Generados");
-      sheet.appendRow(["FECHA", "REFERENCIA (OFICIO)", "DESTINATARIO", "ÁREA", "ASUNTO", "REDACTOR", "URL DOCUMENTO"]);
+      const headers = ["FECHA", "REFERENCIA (OFICIO)", "DESTINATARIO", "ÁREA", "ASUNTO", "REDACTOR", "URL DOCUMENTO"];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       sheet.getRange("A1:G1").setBackground("#f3f3f3").setFontWeight("bold");
     }
 
     const email = Session.getActiveUser().getEmail() || "Usuario";
-    sheet.appendRow([
+    const row = [[
       new Date(),
-      datos.oficio || "N/A",
-      datos.titular || "N/A",
-      datos.area || "N/A",
-      datos.asunto || "N/A",
+      _limpiarTexto(datos.oficio || "N/A", 120),
+      _limpiarTexto(datos.titular || "N/A", 200),
+      _limpiarTexto(datos.area || "N/A", 160),
+      _limpiarTexto(datos.asunto || "N/A", 500),
       email,
       docUrl
-    ]);
+    ]];
+    sheet.getRange(sheet.getLastRow() + 1, 1, 1, row[0].length).setValues(row);
     SpreadsheetApp.flush(); // Forzar escritura inmediata
     invalidarCaches(); // Reflejar en estadísticas e inicio
     console.log("Fila añadida a Generados.");
@@ -682,8 +692,9 @@ function llamarGeminiTexto(prompt) {
     throw new Error(`Gemini Texto Error ${statusCode}: ${responseText}`);
   }
 
-  const json = JSON.parse(responseText);
+  const json = _parseJsonSeguro(responseText, null);
   
+  if (!json) throw new Error("Respuesta inválida del motor de lenguaje.");
   if (json.candidates && json.candidates[0].content) {
     return json.candidates[0].content.parts[0].text.trim();
   }
@@ -737,7 +748,7 @@ function obtenerEstadisticas() {
   const cached = cache.get(CACHE_KEYS.ESTADISTICAS);
   
   if (cached) {
-    return { success: true, data: JSON.parse(cached) };
+    return { success: true, data: _parseJsonSeguro(cached, {}) };
   }
 
   try {
@@ -873,10 +884,10 @@ function auditarPlazosDeConservacion() {
       }, CONFIG.SHEET_ID_GOBIERNO);
 
       // Notificar por Gmail
-      const listaHtml = expirados.map(o => `<li><b>${o.oficio}</b> (${o.serie})</li>`).join('');
+      const listaHtml = expirados.map(o => `<li><b>${_escaparHtml(o.oficio)}</b> (${_escaparHtml(o.serie)})</li>`).join('');
       const cuerpo = `<h3>Alerta de CADIDO</h3><p>Los siguientes documentos han vencido su plazo en Trámite:</p><ul>${listaHtml}</ul>`;
       
-      GmailApp.sendEmail(Session.getActiveUser().getEmail(), "[DSA] Alerta de Transferencia Documental", "", {
+      MailApp.sendEmail(Session.getActiveUser().getEmail(), "[DSA] Alerta de Transferencia Documental", "", {
         htmlBody: cuerpo,
         name: "Sistema de Archivos DSA"
       });
@@ -886,6 +897,130 @@ function auditarPlazosDeConservacion() {
   } catch (e) {
     _log("ERROR", "auditarPlazosDeConservacion", "Error en auditoría archivística", { error: e.toString() });
   }
+}
+
+
+/**
+ * Intenta parsear JSON sin romper el flujo cuando el proveedor devuelve HTML/texto.
+ * @param {string} text Texto serializado.
+ * @param {*} fallback Valor de respaldo.
+ * @return {*}
+ * @private
+ */
+function _parseJsonSeguro(text, fallback) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return fallback;
+  }
+}
+
+/**
+ * Elimina caracteres de control y limita longitud para entradas persistidas.
+ * @param {*} value Valor recibido desde cliente o IA.
+ * @param {number} maxLength Longitud máxima permitida.
+ * @return {string}
+ * @private
+ */
+function _limpiarTexto(value, maxLength) {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+/**
+ * Escapa texto para contenido HTML usado en correos generados por el backend.
+ * @param {*} value Valor a escapar.
+ * @return {string}
+ * @private
+ */
+function _escaparHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Normaliza y valida metadatos del oficio antes de guardarlos.
+ * @param {DocumentoMetadata} datos Metadatos crudos.
+ * @return {DocumentoMetadata}
+ * @private
+ */
+function _normalizarDocumentoMetadata(datos) {
+  const urgenciasPermitidas = new Set(['Baja', 'Normal', 'Alta', 'Crítica']);
+  const metadata = {
+    titular: _limpiarTexto(datos.titular, 200),
+    area: _limpiarTexto(datos.area, 160),
+    oficio: _limpiarTexto(datos.oficio, 120),
+    asunto: _limpiarTexto(datos.asunto, 500),
+    tipo_doc: CADIDO_VIGENCIAS[datos.tipo_doc] ? datos.tipo_doc : '99.9 - Otro / Sin Clasificar',
+    urgencia: urgenciasPermitidas.has(datos.urgencia) ? datos.urgencia : 'Normal',
+    requiere_respuesta: Boolean(datos.requiere_respuesta),
+    uploadId: _limpiarTexto(datos.uploadId || '', 80)
+  };
+
+  if (!metadata.titular || !metadata.area || !metadata.oficio || !metadata.asunto) {
+    throw new Error('Los metadatos del oficio contienen campos vacíos o inválidos.');
+  }
+  return metadata;
+}
+
+/**
+ * Normaliza los datos usados para generación documental.
+ * @param {Object} datos Datos recibidos desde el cliente.
+ * @return {Object}
+ * @private
+ */
+function _normalizarDatosRespuesta(datos) {
+  if (!datos || typeof datos !== 'object') throw new Error('Datos de respuesta inválidos.');
+  const normalizados = {
+    titular: _limpiarTexto(datos.titular, 200),
+    area: _limpiarTexto(datos.area, 160),
+    oficio: _limpiarTexto(datos.oficio, 120),
+    asunto: _limpiarTexto(datos.asunto, 500),
+    notasUsuario: _limpiarTexto(datos.notasUsuario, 4000),
+    asistido: Boolean(datos.asistido)
+  };
+  if (!normalizados.notasUsuario) throw new Error('El contenido de la respuesta es obligatorio.');
+  return normalizados;
+}
+
+
+/**
+ * Valida tamaño y firma básica de un PDF recibido en base64.
+ * @param {string} base64Data PDF en base64.
+ * @throws {Error} Si el contenido no parece PDF o excede el límite.
+ * @return {void}
+ * @private
+ */
+function _validarPdfBase64(base64Data) {
+  const estimatedSizeBytes = Math.ceil(base64Data.length * 3 / 4);
+  const maxPdfBytes = 10 * 1024 * 1024;
+  if (estimatedSizeBytes > maxPdfBytes) {
+    throw new Error(`El archivo excede el límite de 10MB (${(estimatedSizeBytes / 1024 / 1024).toFixed(1)}MB).`);
+  }
+
+  const headerBytes = Utilities.base64Decode(base64Data.slice(0, 16));
+  const header = String.fromCharCode.apply(null, headerBytes.slice(0, 4));
+  if (header !== '%PDF') {
+    throw new Error('El archivo recibido no contiene una firma PDF válida.');
+  }
+}
+
+/**
+ * Sanitiza nombres de archivo de Drive para evitar caracteres problemáticos y nombres enormes.
+ * @param {string} fileName Nombre propuesto.
+ * @return {string}
+ * @private
+ */
+function _sanitizarNombreArchivo(fileName) {
+  const limpio = _limpiarTexto(fileName, 180).replace(/[\\/:*?"<>|#%{}~&]/g, '-');
+  return limpio || `documento-${Date.now()}.pdf`;
 }
 
 /**
@@ -1026,16 +1161,16 @@ function _notificarUrgencia(folio, datos) {
         <h2 style="color: #e74c3c; border-bottom: 2px solid #fecaca; padding-bottom: 10px;">⚠️ Oficio con Prioridad Alta</h2>
         <p style="color: #4a5568;">Se ha registrado un nuevo documento que requiere atención inmediata:</p>
         <table style="width:100%; border-collapse: collapse; text-align: left; margin-top: 15px;">
-          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7; width: 30%;">Folio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${folio}</td></tr>
-          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Remitente:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.titular}</td></tr>
-          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Oficio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.oficio}</td></tr>
-          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Asunto:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${datos.asunto}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7; width: 30%;">Folio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${_escaparHtml(folio)}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Remitente:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${_escaparHtml(datos.titular)}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Oficio:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${_escaparHtml(datos.oficio)}</td></tr>
+          <tr><td style="padding: 10px; font-weight: bold; background: #f8f9fa; border: 1px solid #edf2f7;">Asunto:</td><td style="padding: 10px; border: 1px solid #edf2f7;">${_escaparHtml(datos.asunto)}</td></tr>
         </table>
         <p style="margin-top: 20px; font-size: 0.875rem; color: #718096;">Este es un mensaje automático generado por la División de Servicios Administrativos.</p>
       </div>
     `;
     
-    GmailApp.sendEmail(destinatario, asunto, "", { 
+    MailApp.sendEmail(destinatario, asunto, "", { 
       htmlBody: cuerpo,
       name: "División de Servicios Administrativos"
     });
