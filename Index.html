@@ -2,6 +2,10 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
+  <meta name="theme-color" content="#1A365D" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script>
     if (localStorage.getItem('dsa-theme') === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -15,33 +19,33 @@
 <body>
 
   <!-- MAC OS SIDEBAR -->
-  <nav class="mac-sidebar">
+  <nav class="dsa-sidebar">
     <div class="sidebar-brand">
       <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwznMpanZo8joZkePlBwsbRgQe82yuhR8Qvw&s" alt="Logo" style="width: 52px; height: 52px; border-radius: 12px; object-fit: cover;">
       <span>División de Servicios Administrativos</span>
     </div>
     
     <div class="nav-group-title">Oficialía de Partes</div>
-    <a class="mac-nav-link active" onclick="DSA_App.cambiarVista('v-dashboard')">
+    <a class="dsa-nav-link active" onclick="DSA_App.cambiarVista('v-dashboard')">
       <i class="bi bi-house-door"></i> <span>Libro de Gobierno</span>
     </a>
-    <a class="mac-nav-link" onclick="DSA_App.cambiarVista('v-registro')">
+    <a class="dsa-nav-link" onclick="DSA_App.cambiarVista('v-registro')">
       <i class="bi bi-file-earmark-plus"></i> <span>Recepción de Oficio</span>
     </a>
-    <a class="mac-nav-link" onclick="DSA_App.cambiarVista('v-archivo')">
+    <a class="dsa-nav-link" onclick="DSA_App.cambiarVista('v-archivo')">
       <i class="bi bi-collection"></i> <span>Acervo Documental</span>
     </a>
 
     <div class="nav-group-title">Preferencias</div>
-    <a class="mac-nav-link" onclick="DSA_App.toggleTheme()" style="cursor: pointer;">
+    <a class="dsa-nav-link" onclick="DSA_App.toggleTheme()" style="cursor: pointer;">
       <i id="theme-icon" class="bi bi-moon-stars" style="transition: transform 0.4s ease;"></i> <span>Cambiar Tema</span>
     </a>
     
     <div class="mt-auto">
-      <a class="mac-nav-link mb-2" onclick="DSA_App.toggleSidebar()" style="cursor: pointer;">
+      <a class="dsa-nav-link mb-2" onclick="DSA_App.toggleSidebar()" style="cursor: pointer;">
         <i id="sidebar-icon" class="bi bi-layout-sidebar"></i> <span>Contraer</span>
       </a>
-      <a class="mac-nav-link" href="#" style="color: var(--system-red);">
+      <a class="dsa-nav-link" href="#" style="color: var(--system-red);">
         <i class="bi bi-box-arrow-right" style="color: var(--system-red);"></i> <span>Salir</span>
       </a>
     </div>
@@ -49,7 +53,7 @@
 
   <!-- MAIN CONTENT AREA -->
   <main class="p-0">
-    <header class="mac-topbar d-flex justify-content-between align-items-center px-4 py-3">
+    <header class="dsa-topbar d-flex justify-content-between align-items-center px-4 py-3">
       <div>
         <div class="fw-bold text-primary" style="font-size: 0.75rem; letter-spacing: 0.05em;">OFICIALÍA DE PARTES — DSA</div>
         <div class="fw-medium text-secondary small" id="app-breadcrumb">Mesa de Entrada <span class="mx-2">/</span> Resumen Operativo</div>
@@ -68,15 +72,14 @@
     <div id="v-dashboard" class="vista">
       <div class="row g-4 mb-5">
         <div class="col-md-6 col-lg-3">
-          <div class="apple-stats-card hero">
-            <div class="accent-bar bg-primary"></div>
+          <div class="dsa-stats-card hero">
             <div class="stats-label">Fojas Ingresadas</div>
             <div class="stats-value" id="stat-total">0</div>
             <div class="text-white-50 small mt-1"><i class="bi bi-arrow-up-short"></i> <span id="stat-hoy">0</span> hoy</div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="apple-stats-card">
+          <div class="dsa-stats-card">
             <div class="accent-bar bg-warning"></div>
             <div class="stats-label">Pendientes de Turno</div>
             <div class="stats-value text-warning" id="stat-pendientes">0</div>
@@ -84,7 +87,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <div class="apple-stats-card">
+          <div class="dsa-stats-card">
             <div class="accent-bar bg-danger"></div>
             <div class="stats-label">Término Próximo</div>
             <div class="stats-value text-danger" id="stat-urgentes">0</div>
@@ -92,7 +95,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <div class="apple-stats-card text-center d-flex flex-column align-items-center justify-content-center">
+          <div class="dsa-stats-card text-center d-flex flex-column align-items-center justify-content-center">
             <div class="stats-label">Tasa de Atención</div>
             <div class="donut-chart mb-2">
               <svg width="80" height="80" viewBox="0 0 42 42">
@@ -107,8 +110,8 @@
 
       <div class="row g-4">
         <div class="col-lg-8">
-          <div class="mac-card mb-0">
-            <div class="mac-card-header">
+          <div class="dsa-card mb-0">
+            <div class="dsa-card-header">
               <span class="fw-semibold small">ACTIVIDAD RECIENTE</span>
               <div class="traffic-lights">
                 <div class="dot red"></div>
@@ -118,7 +121,7 @@
             </div>
             <div class="p-0">
               <table class="table table-hover mb-0 align-middle">
-                <thead class="mac-table-head">
+                <thead class="dsa-table-head">
                   <tr class="text-secondary small">
                     <th class="ps-4 py-3">FOLIO</th>
                     <th>REMITENTE</th>
@@ -136,7 +139,7 @@
         </div>
         
         <div class="col-lg-4">
-          <div class="mac-card h-100 p-4 mb-0">
+          <div class="dsa-card h-100 p-4 mb-0">
             <h6 class="fw-bold mb-3">Acciones Rápidas</h6>
             <button class="btn btn-light w-100 text-start mb-2 shadow-sm rounded-3 py-2 border-0" onclick="DSA_App.cambiarVista('v-registro')" style="background: var(--system-gray6);">
               <i class="bi bi-file-earmark-plus text-primary me-2"></i> Subir Oficio
@@ -170,7 +173,7 @@
       </div>
 
       <!-- MAC STEPPER -->
-      <div class="apple-stepper" id="stepper-main">
+      <div class="dsa-stepper" id="stepper-main">
         <div class="step-item active" id="step-ui-1" onclick="if(this.classList.contains('completed')) DSA_App.cambiarPaso(1)">
           <div class="step-dot">1</div>
           <div class="step-label">Subir</div>
@@ -190,7 +193,7 @@
       <!-- PASO 1: SUBIR -->
       <div id="paso-1" class="paso">
         <div class="max-w-600">
-          <div class="mac-dropzone text-center shadow-sm" id="dropzone">
+          <div class="dsa-dropzone text-center shadow-sm" id="dropzone">
             <div class="mb-3">
               <i class="bi bi-file-earmark-arrow-up text-primary" style="font-size: 3.5rem;"></i>
             </div>
@@ -210,8 +213,8 @@
       <div id="paso-2" class="paso d-none">
         <div class="row g-4">
           <div class="col-lg-7">
-            <div class="mac-card h-100 mb-0">
-              <div class="mac-card-header">
+            <div class="dsa-card h-100 mb-0">
+              <div class="dsa-card-header">
                 <span class="small fw-semibold">VISOR DE DOCUMENTO</span>
                 <div class="traffic-lights">
                   <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" 
@@ -227,8 +230,8 @@
           </div>
           
           <div class="col-lg-5">
-            <div class="mac-card mb-0 p-0 d-flex flex-column" style="height: 70vh;">
-              <div class="mac-card-header">
+            <div class="dsa-card mb-0 p-0 d-flex flex-column" style="height: 70vh;">
+              <div class="dsa-card-header">
                 <span class="small fw-semibold">DATOS DETECTADOS</span>
                 <i class="bi bi-robot text-primary"></i>
               </div>
@@ -239,12 +242,16 @@
                     <div class="small fw-bold mb-3 text-secondary">ORIGEN DEL DOCUMENTO</div>
                     <div class="row g-3">
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-secondary">TITULAR / FIRMANTE</label>
-                        <input type="text" id="campo-titular" class="mac-input" placeholder="Nombre completo">
+                        <div class="form-floating-group">
+                          <input type="text" id="campo-titular" class="dsa-input" placeholder=" ">
+                          <label for="campo-titular">TITULAR / FIRMANTE</label>
+                        </div>
                       </div>
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
-                        <input type="text" id="campo-area" class="mac-input" placeholder="Área emisora">
+                        <div class="form-floating-group">
+                          <input type="text" id="campo-area" class="dsa-input" placeholder=" ">
+                          <label for="campo-area">ÁREA / DEPENDENCIA</label>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -252,12 +259,16 @@
                   <div class="form-section">
                     <div class="small fw-bold mb-3 text-secondary">IDENTIFICACIÓN</div>
                     <div class="mb-3">
-                      <label class="form-label small fw-semibold text-secondary">NÚMERO DE OFICIO</label>
-                      <input type="text" id="campo-oficio" class="mac-input" placeholder="Ej: SEGOB/045/2026">
+                      <div class="form-floating-group">
+                        <input type="text" id="campo-oficio" class="dsa-input" placeholder=" ">
+                        <label for="campo-oficio">NÚMERO DE OFICIO</label>
+                      </div>
                     </div>
                     <div class="mb-0">
-                      <label class="form-label small fw-semibold text-secondary">ASUNTO / SÍNTESIS</label>
-                      <textarea id="campo-asunto" class="mac-input" rows="2" placeholder="Breve descripción..."></textarea>
+                      <div class="form-floating-group">
+                        <textarea id="campo-asunto" class="dsa-input" rows="2" placeholder=" "></textarea>
+                        <label for="campo-asunto">ASUNTO / SÍNTESIS</label>
+                      </div>
                     </div>
                   </div>
 
@@ -265,8 +276,8 @@
                     <div class="small fw-bold mb-3 text-secondary">CLASIFICACIÓN OPERATIVA</div>
                     <div class="row g-3 mb-3">
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-secondary">SERIE DOCUMENTAL (CGCA)</label>
-                        <select id="campo-tipo-doc" class="mac-input">
+                        <label class="form-label small fw-semibold text-secondary mb-1">SERIE DOCUMENTAL (CGCA)</label>
+                        <select id="campo-tipo-doc" class="dsa-input">
                           <option value="1C.1 - Licitaciones Públicas">1C.1 - Licitaciones Públicas</option>
                           <option value="1C.2 - Contratos y Convenios">1C.2 - Contratos y Convenios</option>
                           <option value="2C.1 - Expedientes de Personal">2C.1 - Expedientes de Personal</option>
@@ -276,8 +287,8 @@
                         </select>
                       </div>
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-secondary">PRIORIDAD</label>
-                        <select id="campo-urgencia" class="mac-input">
+                        <label class="form-label small fw-semibold text-secondary mb-1">PRIORIDAD</label>
+                        <select id="campo-urgencia" class="dsa-input">
                           <option value="Baja">Baja</option>
                           <option value="Normal" selected>Normal</option>
                           <option value="Alta">Alta</option>
@@ -294,7 +305,7 @@
               </div>
 
               <div class="sticky-bottom d-flex justify-content-end">
-                <button type="button" class="apple-btn apple-btn-primary w-100" onclick="DSA_App.validarYContinuar()">
+                <button type="button" class="dsa-btn dsa-btn-primary w-100" onclick="DSA_App.validarYContinuar()">
                   Revisar y Continuar
                 </button>
               </div>
@@ -312,7 +323,7 @@
           <h3 class="fw-bold">Confirmar Registro</h3>
           <p class="text-secondary mb-5">Verifica los datos antes de indexarlos en la Oficialía oficial.</p>
           
-          <div class="mac-card text-start p-4 mb-5">
+          <div class="dsa-card text-start p-4 mb-5">
             <div class="row g-3">
               <div class="col-4 text-secondary small fw-medium">TITULAR:</div>
               <div id="res-titular" class="col-8">---</div>
@@ -330,10 +341,10 @@
           </div>
 
           <div class="d-flex justify-content-center gap-3">
-            <button class="apple-btn apple-btn-secondary px-5" 
+            <button class="dsa-btn dsa-btn-secondary px-5" 
                     data-tooltip="Atajo: Escape"
                     onclick="DSA_App.cambiarPaso(2)">Regresar</button>
-            <button class="apple-btn apple-btn-primary px-5" 
+            <button class="dsa-btn dsa-btn-primary px-5" 
                     data-tooltip="Atajo: Enter"
                     onclick="DSA_App.registrarOficioFinal()">Confirmar y Registrar</button>
           </div>
@@ -344,20 +355,20 @@
     <!-- VISTA: ARCHIVO -->
     <div id="v-archivo" class="vista d-none">
       <!-- Filtros Avanzados (Elite Chips) -->
-      <div class="mac-card p-4 mb-4">
+      <div class="dsa-card p-4 mb-4">
         <div class="row g-3 align-items-center">
           <div class="col-md-3">
             <div class="input-group search-wrapper">
               <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
               <input type="text" id="filtro-texto" class="form-control border-0 bg-transparent py-2 pe-5" placeholder="Buscar en biblioteca...">
-              <div class="mac-kbd">⌘K</div>
+              <div class="dsa-kbd">⌘K</div>
             </div>
           </div>
           <div class="col-md-9">
             <div class="d-flex gap-3 align-items-center flex-wrap">
               <div style="min-width: 150px;">
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">ÁREA / DEPENDENCIA</div>
-                <select id="filtro-area" class="mac-input py-1 small" onchange="DSA_App.aplicarFiltrosBiblioteca()">
+                <select id="filtro-area" class="dsa-input py-1 small" onchange="DSA_App.aplicarFiltrosBiblioteca()">
                   <option value="">Todas las Áreas</option>
                 </select>
               </div>
@@ -399,10 +410,10 @@
       <!-- Master-Detail Layout -->
       <div class="d-flex w-100 gap-3" style="height: calc(100vh - 200px);">
         <!-- MASTER: Tabla de Registros -->
-        <div id="biblio-master" class="flex-grow-1 overflow-auto mac-card mb-0 transition-all p-0">
+        <div id="biblio-master" class="flex-grow-1 overflow-auto dsa-card mb-0 transition-all p-0">
           <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
-              <thead class="mac-table-head">
+              <thead class="dsa-table-head">
                 <tr class="text-secondary small">
                   <th class="ps-4">FECHA</th>
                   <th>TITULAR / ÁREA</th>
@@ -428,16 +439,16 @@
             </svg>
             <h5 class="fw-bold text-primary">Acervo al Corriente</h5>
             <p class="text-secondary mb-4">No hay oficios pendientes. Los nuevos registros aparecerán aquí automáticamente.</p>
-            <button class="apple-btn apple-btn-primary" onclick="DSA_App.cambiarVista('v-registro')">
+            <button class="dsa-btn dsa-btn-primary" onclick="DSA_App.cambiarVista('v-registro')">
               <i class="bi bi-plus-lg me-2"></i> Registrar Primer Oficio
             </button>
           </div>
           <div class="text-center py-4 d-none" id="btn-cargar-mas">
-            <button class="apple-btn apple-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>
+            <button class="dsa-btn dsa-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>
           </div>
         </div>
 
-        <div id="biblio-detail" class="mac-detail-panel flex-shrink-0" style="width: 420px; transition: width 0.3s;">
+        <div id="biblio-detail" class="dsa-detail-panel flex-shrink-0" style="width: 420px; transition: width 0.3s;">
           <div id="det-empty-state" class="h-100 d-flex flex-column align-items-center justify-content-center p-4 text-center">
             <i class="bi bi-file-text text-secondary opacity-25 mb-3" style="font-size: 4rem;"></i>
             <h5 class="fw-bold text-primary">Visor Documental</h5>
@@ -475,10 +486,10 @@
             </div>
 
             <div class="d-grid gap-2 mb-4">
-              <button class="apple-btn apple-btn-primary" id="btn-responder-det">
+              <button class="dsa-btn dsa-btn-primary" id="btn-responder-det">
                 <i class="bi bi-reply-fill me-2"></i> Redactar Respuesta
               </button>
-              <a href="#" target="_blank" class="apple-btn apple-btn-secondary text-center text-decoration-none" id="btn-ver-pdf-det">
+              <a href="#" target="_blank" class="dsa-btn dsa-btn-secondary text-center text-decoration-none" id="btn-ver-pdf-det">
                 <i class="bi bi-file-earmark-pdf me-2"></i> Ver Original
               </a>
             </div>
@@ -488,7 +499,7 @@
             <div class="text-secondary small mb-2 fw-bold">VISTA PREVIA RÁPIDA</div>
             <div class="bg-light rounded-4 overflow-hidden border" style="height: 300px;">
               <div id="loader-pdf-det" class="position-absolute w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-transparent z-1">
-                <div class="mac-spinner" style="width: 32px; height: 32px; border-width: 3px;"></div>
+                <div class="dsa-spinner" style="width: 32px; height: 32px; border-width: 3px;"></div>
               </div>
               <iframe id="pdf-viewer-det" class="w-100 h-100 border-0 position-relative z-2" style="opacity: 0; transition: opacity 0.5s ease;" onload="this.style.opacity=1; document.getElementById('loader-pdf-det').style.display='none'" allow="fullscreen" src="data:text/html,<!DOCTYPE html><html><body style='margin:0;overflow:hidden;background:transparent;'></body></html>"></iframe>
             </div>
@@ -516,36 +527,46 @@
 
       <div class="row g-3 mb-3">
         <div class="col-md-12">
-          <label class="form-label small fw-semibold text-secondary">TITULAR (DESTINATARIO)</label>
-          <input type="text" id="resp-titular" class="mac-input py-2">
+          <div class="form-floating-group">
+            <input type="text" id="resp-titular" class="dsa-input" placeholder=" ">
+            <label for="resp-titular">TITULAR (DESTINATARIO)</label>
+          </div>
         </div>
         <div class="col-md-12">
-          <label class="form-label small fw-semibold text-secondary">ÁREA / DEPENDENCIA</label>
-          <input type="text" id="resp-area-val" class="mac-input py-2">
+          <div class="form-floating-group">
+            <input type="text" id="resp-area-val" class="dsa-input" placeholder=" ">
+            <label for="resp-area-val">ÁREA / DEPENDENCIA</label>
+          </div>
         </div>
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
-          <label class="form-label small fw-semibold text-secondary">REFERENCIA</label>
-          <input type="text" id="resp-oficio-val" class="mac-input py-2">
+          <div class="form-floating-group">
+            <input type="text" id="resp-oficio-val" class="dsa-input" placeholder=" ">
+            <label for="resp-oficio-val">REFERENCIA</label>
+          </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-semibold text-secondary">ASUNTO</label>
-          <input type="text" id="resp-asunto-val" class="mac-input py-2">
+          <div class="form-floating-group">
+            <input type="text" id="resp-asunto-val" class="dsa-input" placeholder=" ">
+            <label for="resp-asunto-val">ASUNTO</label>
+          </div>
         </div>
       </div>
 
       <div class="flex-grow-1 mb-4">
-        <label class="form-label small fw-semibold text-secondary">PUNTOS CLAVE PARA LA RESPUESTA</label>
-        <textarea id="resp-notas" class="mac-input h-100" style="resize: none;" placeholder="Escribe aquí los puntos principales..."></textarea>
+        <div class="form-floating-group h-100">
+          <textarea id="resp-notas" class="dsa-input h-100" style="resize: none;" placeholder=" "></textarea>
+          <label for="resp-notas">PUNTOS CLAVE PARA LA RESPUESTA</label>
+        </div>
       </div>
 
       <div class="d-grid gap-2">
-        <button class="apple-btn apple-btn-primary ai-magic-btn" onclick="DSA_App.ejecutarGeneracion(true, event)">
+        <button class="dsa-btn dsa-btn-primary ai-magic-btn" onclick="DSA_App.ejecutarGeneracion(true, event)">
           <i class="bi bi-stars me-2"></i> Redacción Profesional
         </button>
-        <button class="apple-btn apple-btn-secondary" onclick="DSA_App.ejecutarGeneracion(false, event)">
+        <button class="dsa-btn dsa-btn-secondary" onclick="DSA_App.ejecutarGeneracion(false, event)">
           <i class="bi bi-file-earmark-text me-2"></i> Borrador Simple
         </button>
       </div>
@@ -554,8 +575,8 @@
 
   <!-- APPLE STYLE LOADER -->
   <div id="global-loader" class="d-none">
-    <div class="mac-loader-container">
-      <div class="mac-spinner"></div>
+    <div class="dsa-loader-container">
+      <div class="dsa-spinner"></div>
       <div class="text-center">
         <div id="loader-message" class="fw-bold h5 mb-1">Sistema de Gestión DSA</div>
         <div id="loader-submessage" class="text-secondary small">Validando criptografía y metadatos...</div>
