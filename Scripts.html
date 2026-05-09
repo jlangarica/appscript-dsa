@@ -30,8 +30,22 @@
       originalError.apply(console, args);
     };
   })();
+  
+  console.log("DSA_App: Iniciando carga de scripts...");
 
-const DSA_App = (function() {
+  /**
+   * UTILIDAD: Almacenamiento seguro para entornos restringidos (GAS Sandbox)
+   */
+  const SafeStorage = {
+    getItem(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    },
+    setItem(key, value) {
+      try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+    }
+  };
+
+  var DSA_App = (function() {
   /**
    * --- EVENT BUS (Pub/Sub Pattern - Tarea #4) ---
    * Descentraliza la lógica de respuesta ante cambios de estado.
@@ -60,8 +74,8 @@ const DSA_App = (function() {
     uploadId: null,
     oficioParaRespuesta: null,
     isProcessing: false,
-    isSidebarCollapsed: localStorage.getItem('dsa-sidebar') === 'true',
-    isDark: localStorage.getItem('dsa-theme') === 'dark',
+    isSidebarCollapsed: SafeStorage.getItem('dsa-sidebar') === 'true',
+    isDark: SafeStorage.getItem('dsa-theme') === 'dark',
     ultimaFilaConocida: 0
   }, {
     set(target, prop, value) {
@@ -80,7 +94,7 @@ const DSA_App = (function() {
    */
   EventBus.on('change:isDark', (value) => {
     document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
-    localStorage.setItem('dsa-theme', value ? 'dark' : 'light');
+    SafeStorage.setItem('dsa-theme', value ? 'dark' : 'light');
     const icon = document.getElementById('theme-icon');
     if (icon) {
       if (value) {
@@ -100,7 +114,7 @@ const DSA_App = (function() {
     if (sidebar) sidebar.classList.toggle('collapsed', value);
     if (icon) icon.classList.toggle('bi-layout-sidebar-reverse', value);
     if (label) label.innerText = value ? 'Expandir' : 'Contraer';
-    localStorage.setItem('dsa-sidebar', value);
+    SafeStorage.setItem('dsa-sidebar', value);
   });
 
   EventBus.on('change:isProcessing', (value) => {
@@ -1438,4 +1452,11 @@ const DSA_App = (function() {
 })();
 
 // Punto de entrada único
-document.addEventListener('DOMContentLoaded', DSA_App.init);
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof DSA_App !== 'undefined' && DSA_App.init) {
+    DSA_App.init();
+    console.log("DSA_App: Inicialización completada.");
+  } else {
+    console.error("DSA_App: Fallo crítico al inicializar el objeto global.");
+  }
+});
