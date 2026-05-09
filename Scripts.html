@@ -530,7 +530,7 @@
           <i class="bi bi-file-earmark-pdf-fill"></i>
         </div>
         <div class="text-start overflow-hidden">
-          <div class="small fw-bold text-primary text-truncate" style="max-width: 180px;">${file.name}</div>
+          <div class="small fw-bold text-primary text-truncate" style="max-width: 180px;">${_escaparHTML(file.name)}</div>
           <div class="text-secondary" style="font-size: 0.65rem;">${(file.size/1024).toFixed(0)} KB • PDF</div>
         </div>
         <button class="btn-close btn-close-sm ms-auto" onclick="event.stopPropagation(); DSA_App.resetForm()"></button>
@@ -680,7 +680,7 @@
       uploadId: AppState.uploadId
     };
 
-    const btn = document.querySelector('button[onclick="registrarOficioFinal()"]');
+    const btn = document.querySelector('button[onclick="DSA_App.registrarOficioFinal()"]');
     if (btn) btn.classList.add('loading');
     
     toggleLoading(false); // No bloquear pantalla para este paso
@@ -709,7 +709,7 @@
               <div class="mac-card p-4 mt-4 text-start shadow-lg" id="ticket-acuse">
                 <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
                   <span class="text-secondary fw-bold small">DIVISIÓN DE SERVICIOS ADMINISTRATIVOS</span>
-                  <span class="fw-bold text-primary">${res.folio || 'FOL-' + Date.now()}</span>
+                  <span class="fw-bold text-primary">${_escaparHTML(res.folio || 'FOL-' + Date.now())}</span>
                 </div>
                 <div class="row g-2 mb-3">
                   <div class="col-5 text-secondary small fw-medium">Fecha y Hora:</div>
@@ -844,11 +844,11 @@
 
     const html = recientes.map(r => `
       <tr>
-        <td class="ps-4 fw-medium">${r.folio}</td>
+        <td class="ps-4 fw-medium">${_escaparHTML(r.folio)}</td>
         <td class="small">${_escaparHTML(r.titular)}</td>
         <td class="small text-secondary text-truncate" style="max-width: 150px;">${_escaparHTML(r.asunto)}</td>
-        <td class="small text-secondary">${r.fecha}</td>
-        <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">${r.estatus}</span></td>
+        <td class="small text-secondary">${_escaparHTML(r.fecha)}</td>
+        <td class="pe-4"><span class="badge rounded-pill bg-success-subtle text-success px-3">${_escaparHTML(r.estatus)}</span></td>
       </tr>
     `).join('');
 
@@ -1207,7 +1207,7 @@
     
     select.innerHTML = '<option value="">Todas las Áreas</option>';
     areas.forEach(area => {
-      select.insertAdjacentHTML('beforeend', `<option value="${area}">${area}</option>`);
+      select.insertAdjacentHTML('beforeend', `<option value="${_escaparHTML(area)}">${_escaparHTML(area)}</option>`);
     });
   }
 
@@ -1256,8 +1256,9 @@
         'Crítica': 'danger'
       }[reg.urgencia] || 'primary';
 
-      const btnDoc = reg.url 
-        ? `<a href="${reg.url}" target="_blank" class="btn btn-sm btn-link p-0 text-primary" title="Ver Documento" onclick="event.stopPropagation()">
+      const safeUrl = _sanitizarUrl(reg.url);
+      const btnDoc = safeUrl 
+        ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-link p-0 text-primary" title="Ver Documento" onclick="event.stopPropagation()">
              <i class="bi bi-file-earmark-pdf" style="font-size: 1.1rem;"></i>
            </a>`
         : `<i class="bi bi-file-earmark-pdf text-secondary opacity-25" style="font-size: 1.1rem;"></i>`;
@@ -1266,7 +1267,7 @@
 
       return `
         <tr data-index="${index}" style="cursor: pointer;">
-          <td class="ps-4 small text-secondary tabular-nums" data-tooltip="${reg.fecha}">${fechaHumanizada}</td>
+          <td class="ps-4 small text-secondary tabular-nums" data-tooltip="${_escaparHTML(reg.fecha)}">${_escaparHTML(fechaHumanizada)}</td>
           <td>
             <div class="cell-group" data-tooltip="${_escaparHTML(reg.asunto)}">
               <div class="fw-medium text-truncate" style="max-width: 150px;">${_resaltar(reg.titular)}</div>
@@ -1276,10 +1277,10 @@
           <td>
             <div class="cell-group">
               <div class="small font-monospace tabular-nums">${_resaltar(reg.oficio)}</div>
-              <div><span class="badge bg-light text-dark border" style="font-size: 0.6rem;">${reg.tipo_doc}</span></div>
+              <div><span class="badge bg-light text-dark border" style="font-size: 0.6rem;">${_escaparHTML(reg.tipo_doc)}</span></div>
             </div>
           </td>
-          <td><span class="badge bg-${colorPrioridad}-subtle text-${colorPrioridad} rounded-pill px-3">${reg.urgencia}</span></td>
+          <td><span class="badge bg-${colorPrioridad}-subtle text-${colorPrioridad} rounded-pill px-3">${_escaparHTML(reg.urgencia)}</span></td>
           <td class="pe-4 text-center">${btnDoc}</td>
         </tr>
       `;
@@ -1339,7 +1340,7 @@
     
     const escapedText = _escaparHTML(texto);
     try {
-      const regex = new RegExp(`(${_escaparHTML(filtro)})`, 'gi');
+      const regex = new RegExp(`(${_escaparRegExp(filtro)})`, 'gi');
       return escapedText.replace(regex, '<mark class="dsa-highlight">$1</mark>');
     } catch(e) {
       return escapedText;
@@ -1347,10 +1348,38 @@
   }
 
   function _escaparHTML(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
     const div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
+    div.appendChild(document.createTextNode(String(str)));
     return div.innerHTML;
+  }
+
+  /**
+   * Escapa caracteres especiales para construir expresiones regulares seguras.
+   * @param {string} str - Texto proporcionado por el usuario.
+   * @return {string}
+   * @private
+   */
+  function _escaparRegExp(str) {
+    return String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Permite únicamente URLs HTTP(S) de Drive/Docs o URLs vacías para evitar javascript: URLs.
+   * @param {string} url - URL a validar.
+   * @return {string}
+   * @private
+   */
+  function _sanitizarUrl(url) {
+    if (!url) return '';
+    try {
+      const parsed = new URL(String(url));
+      const hostsPermitidos = ['drive.google.com', 'docs.google.com'];
+      if (parsed.protocol !== 'https:' || !hostsPermitidos.includes(parsed.hostname)) return '';
+      return parsed.href;
+    } catch (e) {
+      return '';
+    }
   }
 
   /**
@@ -1361,7 +1390,7 @@
     const hash = uploadId.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0);
     const hue = Math.abs(hash % 360);
     return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:hsl(${hue},75%,55%);margin-right:4px;box-shadow: 0 0 5px hsl(${hue},75%,55%);"></span>
-            <code style="font-size:0.55rem;letter-spacing:1px;opacity:0.8;">${uploadId}</code>`;
+            <code style="font-size:0.55rem;letter-spacing:1px;opacity:0.8;">${_escaparHTML(uploadId)}</code>`;
   }
 
   /**
@@ -1433,14 +1462,14 @@
       <div class="cmd-item ${idx === 0 ? 'selected' : ''}" onclick="DSA_App._executeCommand(${_commands.indexOf(c)})">
         <div class="d-flex align-items-center gap-3">
           <div class="cmd-icon-box bg-primary-subtle text-primary rounded-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-            <i class="${c.icon}"></i>
+            <i class="${_escaparHTML(c.icon)}"></i>
           </div>
           <div class="d-flex flex-column">
-            <span class="fw-medium">${c.label}</span>
-            <span class="text-secondary" style="font-size: 0.65rem;">${c.category}</span>
+            <span class="fw-medium">${_escaparHTML(c.label)}</span>
+            <span class="text-secondary" style="font-size: 0.65rem;">${_escaparHTML(c.category)}</span>
           </div>
         </div>
-        <span class="cmd-shortcut">${c.shortcut}</span>
+        <span class="cmd-shortcut">${_escaparHTML(c.shortcut)}</span>
       </div>
     `).join('');
   }
@@ -1542,11 +1571,11 @@
           <div class="d-flex justify-content-between align-items-center mb-1">
             <div class="d-flex align-items-center gap-2">
               <i class="bi ${icon}" style="color: ${color};"></i>
-              <span class="fw-bold small" style="color: ${color}; letter-spacing: 0.5px;">${title.toUpperCase()}</span>
+              <span class="fw-bold small" style="color: ${color}; letter-spacing: 0.5px;">${_escaparHTML(String(title).toUpperCase())}</span>
             </div>
             <button type="button" class="btn-close small" style="font-size: 0.7rem; opacity: 0.5;" onclick="document.getElementById('${id}').remove()"></button>
           </div>
-          <div class="text-secondary small" style="line-height: 1.4;">${message}</div>
+          <div class="text-secondary small" style="line-height: 1.4;">${_escaparHTML(message)}</div>
         </div>
       </div>
     `;
@@ -1597,6 +1626,7 @@
     registrarOficioFinal,
     cambiarPaso,
     validarYContinuar,
+    resetForm,
     _executeCommand
   };
 })();
