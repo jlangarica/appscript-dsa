@@ -31,6 +31,22 @@
     --active-pill: rgba(0, 122, 255, 0.1);
     --active-text: #007aff;
     --table-head-bg: rgba(0, 0, 0, 0.03);
+
+    /* --- ELITE TYPOGRAPHY TOKENS --- */
+    --font-xs: 0.6875rem;    /* 11px — labels, badges */
+    --font-sm: 0.8125rem;    /* 13px — body secundario */
+    --font-base: 0.9375rem;  /* 15px — body principal */
+    --font-md: 1.0625rem;    /* 17px — subtítulos */
+    --font-lg: 1.375rem;     /* 22px — títulos de vista */
+    --font-xl: 1.75rem;      /* 28px — números de stats */
+
+    --leading-tight: 1.2;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.65;
+
+    --tracking-tight: -0.02em;
+    --tracking-normal: -0.011em;
+    --tracking-wide: 0.05em;
   }
 
   [data-theme="dark"] {
@@ -69,7 +85,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: var(--font-xs);
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
@@ -103,11 +119,13 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Helvetica Neue", sans-serif;
+    font-size: var(--font-base);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-normal);
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow-x: hidden;
     transition: background 0.3s ease;
-    letter-spacing: -0.011em;
   }
 
   /* --- SIDEBAR MAC OS STYLE --- */
@@ -150,17 +168,18 @@
 
   .sidebar-brand span {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: var(--font-sm);
     color: var(--text-primary);
     opacity: 0.9;
+    letter-spacing: var(--tracking-tight);
   }
 
   .nav-group-title {
-    font-size: 0.65rem;
+    font-size: var(--font-xs);
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--tracking-wide);
     margin: 1.5rem 0.75rem 0.5rem;
   }
 
@@ -168,15 +187,17 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.85rem;
     border-radius: 8px;
     color: var(--text-primary);
     text-decoration: none !important;
-    font-size: 0.85rem;
+    font-size: var(--font-sm);
     font-weight: 400;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     margin-bottom: 2px;
+    position: relative;
+    z-index: 1;
   }
 
   .mac-nav-link i {
@@ -191,9 +212,23 @@
   }
 
   .mac-nav-link.active {
-    background: var(--active-pill);
     color: var(--active-text);
-    font-weight: 500;
+    font-weight: 600;
+  }
+
+  .mac-nav-link.active::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--active-pill);
+    border-radius: 8px;
+    z-index: -1;
+    animation: navPillSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes navPillSlide {
+    from { transform: scaleY(0.6); opacity: 0; }
+    to { transform: scaleY(1); opacity: 1; }
   }
 
   .mac-nav-link span, .sidebar-brand span, .nav-group-title {
@@ -310,7 +345,7 @@
   .context-item {
     padding: 8px 12px;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: var(--font-sm);
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -329,7 +364,7 @@
     border-radius: 20px;
     background: var(--system-gray6);
     border: 1px solid var(--separator);
-    font-size: 0.75rem;
+    font-size: var(--font-xs);
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
@@ -357,9 +392,9 @@
     color: white;
     padding: 8px 12px;
     border-radius: 8px;
-    font-size: 0.75rem;
+    font-size: var(--font-xs);
     font-weight: 400;
-    line-height: 1.4;
+    line-height: var(--leading-tight);
     white-space: pre-wrap;
     width: max-content;
     max-width: 280px;
@@ -442,7 +477,30 @@
     position: relative;
     overflow: hidden;
     transition: transform 0.2s ease;
+    opacity: 0;
+    animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
+
+  .apple-stats-card:nth-child(1) { animation-delay: 0.05s; }
+  .apple-stats-card:nth-child(2) { animation-delay: 0.1s; }
+  .apple-stats-card:nth-child(3) { animation-delay: 0.15s; }
+  .apple-stats-card:nth-child(4) { animation-delay: 0.2s; }
+
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .apple-stats-card.hero {
+    padding: 1.75rem;
+    background: linear-gradient(135deg, var(--dsa-primary), #2a4a7f);
+    color: white;
+    border: none;
+  }
+
+  .apple-stats-card.hero .stats-label { color: rgba(255,255,255,0.7); font-weight: 600; }
+  .apple-stats-card.hero .stats-value { font-size: 2.25rem; color: white; }
+  .apple-stats-card.hero .accent-bar { display: none; }
 
   .apple-stats-card:hover { transform: scale(1.02); }
 
@@ -455,18 +513,18 @@
   }
 
   .stats-label {
-    font-size: 0.75rem;
+    font-size: var(--font-xs);
     font-weight: 500;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-wide);
     margin-bottom: 0.25rem;
   }
 
   .stats-value {
-    font-size: 1.75rem;
+    font-size: var(--font-xl);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: var(--tracking-tight);
   }
 
   /* --- WIZARD STEPPER (Connected Circles) --- */
@@ -493,7 +551,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
+    font-size: var(--font-xs);
     font-weight: 600;
     z-index: 2;
     transition: all 0.3s ease;
@@ -533,7 +591,7 @@
     top: 35px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 0.7rem;
+    font-size: var(--font-xs);
     font-weight: 500;
     white-space: nowrap;
     color: var(--text-secondary);
@@ -554,7 +612,7 @@
   .apple-btn {
     padding: 0.6rem 1.5rem;
     border-radius: 980px; /* Pill */
-    font-size: 0.9rem;
+    font-size: var(--font-base);
     font-weight: 500;
     transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
     border: none;
@@ -645,7 +703,7 @@
     border: 1px solid var(--separator);
     background: var(--bg-color);
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: var(--font-base);
     transition: all 0.2s ease;
   }
 
@@ -784,6 +842,21 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+
+  /* --- ELITE TABLE ROW HOVER --- */
+  #tabla-biblioteca-body tr {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  #tabla-biblioteca-body tr:hover {
+    background: var(--active-pill) !important;
+    transform: translateX(2px);
+    box-shadow: inset 3px 0 0 var(--dsa-accent);
+  }
+  #tabla-biblioteca-body tr.table-active {
+    background: var(--active-pill) !important;
+    box-shadow: inset 3px 0 0 var(--system-blue);
   }
 
   /* Skeleton Loaders */
