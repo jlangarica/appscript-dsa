@@ -404,6 +404,21 @@
     animation: macTooltipIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
+  /* ✅ Panel con glassmorphism más pronunciado */
+  #panel-respuesta {
+    background: rgba(var(--bg-color-rgb), 0.8) !important;
+    backdrop-filter: blur(60px) saturate(210%) !important;
+    -webkit-backdrop-filter: blur(60px) saturate(210%) !important;
+    border-left: 1px solid rgba(255,255,255,0.15) !important;
+    box-shadow: -20px 0 50px rgba(0,0,0,0.15) !important;
+  }
+
+  #panel-overlay {
+    backdrop-filter: blur(8px) !important;
+    background: rgba(0,0,0,0.32) !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
   @keyframes macTooltipIn {
     from { opacity: 0; transform: translateX(-50%) translateY(0); }
     to { opacity: 1; transform: translateX(-50%) translateY(-10px); }
@@ -951,14 +966,21 @@
   .ai-magic-btn::before {
     content: '';
     position: absolute;
-    top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-    transform: skewX(-20deg);
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
     animation: shimmerSweep 3s infinite;
+    pointer-events: none;
   }
+  
   @keyframes shimmerSweep {
     0% { left: -100%; }
-    20% { left: 200%; }
     100% { left: 200%; }
+  }
+
+  /* ✅ Pausar shimmer durante loading */
+  .ai-magic-btn.loading::before {
+    animation: none;
+    opacity: 0;
   }
 </style>

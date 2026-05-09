@@ -432,6 +432,29 @@ const DSA_App = (function() {
     AppState.pdfFile = file;
     AppState.uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
+    // ✅ Mostrar chip de archivo seleccionado en el dropzone (UX Elite)
+    const dropzone = document.getElementById('dropzone');
+    if (dropzone) {
+      let chip = document.getElementById('file-chip');
+      if (!chip) {
+        chip = document.createElement('div');
+        chip.id = 'file-chip';
+        chip.className = 'd-flex align-items-center gap-2 mt-4 p-3 rounded-4 bg-primary-subtle animate-fade-in';
+        chip.style.border = '1px solid var(--system-blue)';
+        dropzone.appendChild(chip);
+      }
+      chip.innerHTML = `
+        <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center">
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+        </div>
+        <div class="text-start overflow-hidden">
+          <div class="small fw-bold text-primary text-truncate" style="max-width: 180px;">${file.name}</div>
+          <div class="text-secondary" style="font-size: 0.65rem;">${(file.size/1024).toFixed(0)} KB • PDF</div>
+        </div>
+        <button class="btn-close btn-close-sm ms-auto" onclick="event.stopPropagation(); DSA_App.resetForm()"></button>
+      `;
+    }
+
     // Render PDF localmente
     const objectUrl = URL.createObjectURL(file);
     document.getElementById('pdf-viewer').src = objectUrl;
@@ -630,6 +653,11 @@ const DSA_App = (function() {
     AppState.extractedData = null;
     document.getElementById('form-datos').reset();
     document.getElementById('pdf-viewer').src = 'about:blank';
+    
+    // Limpiar chip si existe
+    const chip = document.getElementById('file-chip');
+    if (chip) chip.remove();
+
     cambiarPaso(1);
   }
 
@@ -1202,8 +1230,14 @@ const DSA_App = (function() {
 
   function showToast(title, message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+    
     const id = 'toast-' + Date.now();
     
+    // Offset automático por posición en stack (UX Elite)
+    const existing = toastContainer.querySelectorAll('[id^="toast-"]');
+    const offset = existing.length * 12; // 12px de offset por toast existente
+
     // Mapeo de colores Apple
     const colors = {
       'success': '#34c759',
@@ -1219,6 +1253,8 @@ const DSA_App = (function() {
            background: var(--card-bg); backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
            border-radius: 12px; border: 1px solid var(--separator); border-left-width: 4px;
            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+           transform: translateY(${offset}px);
+           transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
            animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
         <div class="p-3">
           <div class="d-flex justify-content-between align-items-center mb-1">

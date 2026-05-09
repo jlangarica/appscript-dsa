@@ -67,12 +67,12 @@
     <!-- VISTA: DASHBOARD -->
     <div id="v-dashboard" class="vista">
       <div class="row g-4 mb-5">
-        <div class="col-md-3">
-          <div class="apple-stats-card">
+        <div class="col-md-6 col-lg-3">
+          <div class="apple-stats-card hero">
             <div class="accent-bar bg-primary"></div>
             <div class="stats-label">Fojas Ingresadas</div>
             <div class="stats-value" id="stat-total">0</div>
-            <div class="text-success small mt-1"><i class="bi bi-arrow-up-short"></i> <span id="stat-hoy">0</span> hoy</div>
+            <div class="text-white-50 small mt-1"><i class="bi bi-arrow-up-short"></i> <span id="stat-hoy">0</span> hoy</div>
           </div>
         </div>
         <div class="col-md-3">
@@ -484,8 +484,10 @@
 </main>
 
 <!-- PANEL DE RESPUESTA (Slide-over) -->
-  <div id="panel-overlay" class="d-none" style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; backdrop-filter: blur(2px); transition: opacity 0.3s; opacity: 0;" onclick="DSA_App.cerrarPanelRespuesta()"></div>
-  <div id="panel-respuesta" class="d-none" style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); border-left: 1px solid var(--separator); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(100%);">
+  <div id="panel-overlay" class="d-none" onclick="DSA_App.cerrarPanelRespuesta()"
+       style="position: fixed; inset: 0; z-index: 1999; opacity: 0;"></div>
+  <div id="panel-respuesta" class="d-none" 
+       style="position: fixed; top: 0; right: 0; width: 450px; height: 100vh; z-index: 2000; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(100%);">
     <div class="p-4 h-100 d-flex flex-column">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Redactar Respuesta</h4>
