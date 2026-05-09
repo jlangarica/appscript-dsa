@@ -78,6 +78,14 @@
   :root { --bg-color-rgb: 255, 255, 255; }
   [data-theme="dark"] { --bg-color-rgb: 0, 0, 0; }
 
+  /* ✅ View transitions por nombre para morphing real */
+  #v-dashboard { view-transition-name: dashboard; }
+  #v-registro { view-transition-name: registro; }
+  #v-archivo { view-transition-name: archivo; }
+
+  .mac-sidebar { view-transition-name: sidebar; }
+  .mac-topbar { view-transition-name: topbar; }
+
   .avatar-circle {
     width: 32px;
     height: 32px;
@@ -728,6 +736,16 @@
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
   }
 
+  .mac-input.ai-populating {
+    border-color: var(--dsa-accent) !important;
+    box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.15) !important;
+    background-image: repeating-linear-gradient(
+      90deg, transparent, transparent 2px,
+      rgba(197, 160, 89, 0.1) 2px, rgba(197, 160, 89, 0.1) 4px
+    );
+    background-size: 4px 100%;
+  }
+
   /* --- CUSTOM LOADER --- */
   #global-loader {
     position: fixed;
@@ -773,11 +791,21 @@
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 99999;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(var(--bg-color-rgb), 0.4);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  #global-dropzone h2 {
+    color: var(--text-primary);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  [data-theme="dark"] #global-dropzone h2 {
+    color: white;
   }
 
   mark.mac-highlight {
@@ -983,4 +1011,75 @@
     animation: none;
     opacity: 0;
   }
+  /* --- COMMAND PALETTE --- */
+  .cmd-palette-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding-top: 15vh;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .cmd-palette {
+    width: 520px; max-height: 420px;
+    background: var(--card-bg);
+    backdrop-filter: blur(40px) saturate(200%);
+    border-radius: 14px;
+    border: 1px solid var(--separator);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: cmdSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .cmd-palette-input {
+    width: 100%; padding: 1.25rem 1.5rem;
+    border: none; border-bottom: 1px solid var(--separator);
+    background: transparent; color: var(--text-primary);
+    font-size: 1.1rem; outline: none;
+    font-weight: 400;
+  }
+
+  .cmd-palette-results {
+    overflow-y: auto;
+    padding: 8px;
+    max-height: 350px;
+  }
+
+  .cmd-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+  }
+
+  .cmd-item i { width: 24px; text-align: center; color: var(--system-blue); font-size: 1.1rem; }
+  .cmd-item:hover, .cmd-item.selected {
+    background: var(--system-blue);
+    color: white;
+  }
+  .cmd-item:hover i, .cmd-item.selected i { color: white; }
+
+  .cmd-shortcut {
+    margin-left: auto;
+    font-size: var(--font-xs);
+    opacity: 0.6;
+    background: rgba(0,0,0,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  [data-theme="dark"] .cmd-shortcut { background: rgba(255,255,255,0.1); }
+
+  @keyframes cmdSlideIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>

@@ -214,7 +214,9 @@
               <div class="mac-card-header">
                 <span class="small fw-semibold">VISOR DE DOCUMENTO</span>
                 <div class="traffic-lights">
-                  <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" onclick="DSA_App.cambiarPaso(1)">Cambiar</button>
+                  <button class="btn btn-link p-0 text-secondary me-3 small text-decoration-none" 
+                          data-tooltip="Escape para regresar"
+                          onclick="DSA_App.cambiarPaso(1)">Regresar</button>
                   <div class="dot red"></div>
                   <div class="dot yellow"></div>
                   <div class="dot green"></div>
@@ -328,8 +330,12 @@
           </div>
 
           <div class="d-flex justify-content-center gap-3">
-            <button class="apple-btn apple-btn-secondary px-5" onclick="DSA_App.cambiarPaso(2)">Regresar</button>
-            <button class="apple-btn apple-btn-primary px-5" onclick="DSA_App.registrarOficioFinal()">Confirmar y Registrar</button>
+            <button class="apple-btn apple-btn-secondary px-5" 
+                    data-tooltip="Atajo: Escape"
+                    onclick="DSA_App.cambiarPaso(2)">Regresar</button>
+            <button class="apple-btn apple-btn-primary px-5" 
+                    data-tooltip="Atajo: Enter"
+                    onclick="DSA_App.registrarOficioFinal()">Confirmar y Registrar</button>
           </div>
         </div>
       </div>
@@ -410,11 +416,21 @@
               </tbody>
             </table>
           </div>
-          <div id="empty-search" class="text-center py-5 d-none position-relative">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwznMpanZo8joZkePlBwsbRgQe82yuhR8Qvw&s" class="position-absolute top-50 start-50 translate-middle opacity-10" style="width: 250px; pointer-events: none; filter: grayscale(100%);" alt="Escudo DSA">
-            <i class="bi bi-folder2-open text-secondary position-relative z-1" style="font-size: 3.5rem; opacity: 0.5;"></i>
-            <h5 class="mt-3 fw-bold position-relative z-1 text-primary">Acervo al Corriente</h5>
-            <p class="text-secondary mb-4 position-relative z-1">No existen oficios que requieran atención bajo los filtros actuales.</p>
+          <div id="empty-search" class="text-center py-5 d-none">
+            <svg width="180" height="140" viewBox="0 0 180 140" class="mb-4 opacity-50">
+              <!-- Ilustración de archivos organizados (Apple Style) -->
+              <rect x="40" y="20" width="100" height="80" rx="8" fill="var(--system-gray5)"/>
+              <rect x="50" y="30" width="80" height="8" rx="4" fill="var(--system-gray3)"/>
+              <rect x="50" y="44" width="60" height="8" rx="4" fill="var(--system-gray3)"/>
+              <rect x="50" y="58" width="70" height="8" rx="4" fill="var(--system-gray3)"/>
+              <circle cx="90" cy="110" r="20" fill="none" stroke="var(--system-gray4)" stroke-width="2"/>
+              <path d="M82 110 L90 118 L98 104" fill="none" stroke="var(--system-green)" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <h5 class="fw-bold text-primary">Acervo al Corriente</h5>
+            <p class="text-secondary mb-4">No hay oficios pendientes. Los nuevos registros aparecerán aquí automáticamente.</p>
+            <button class="apple-btn apple-btn-primary" onclick="DSA_App.cambiarVista('v-registro')">
+              <i class="bi bi-plus-lg me-2"></i> Registrar Primer Oficio
+            </button>
           </div>
           <div class="text-center py-4 d-none" id="btn-cargar-mas">
             <button class="apple-btn apple-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>
@@ -491,7 +507,7 @@
     <div class="p-4 h-100 d-flex flex-column">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Redactar Respuesta</h4>
-        <button class="btn-close" onclick="DSA_App.cerrarPanelRespuesta()"></button>
+        <button class="btn-close" data-tooltip="Escape" onclick="DSA_App.cerrarPanelRespuesta()"></button>
       </div>
 
       <div class="alert bg-primary-subtle text-primary border-0 rounded-4 small mb-4">
