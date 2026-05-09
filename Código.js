@@ -163,6 +163,13 @@ function procesarDocumento(base64Data, fileName) {
     // Validación de entrada
     if (!base64Data) throw new Error("No se recibió contenido del archivo.");
 
+    // 0.3 Validación de tamaño (backend)
+    const estimatedSizeBytes = Math.ceil(base64Data.length * 3 / 4);
+    const MAX_PDF_BYTES = 10 * 1024 * 1024; // 10MB
+    if (estimatedSizeBytes > MAX_PDF_BYTES) {
+      return { success: false, message: `El archivo excede el límite de 10MB (${(estimatedSizeBytes/1024/1024).toFixed(1)}MB).` };
+    }
+
     // Paso único: Extracción Multimodal con Gemini (con reintentos exponenciales)
     const jsonEstructurado = _conReintentos(() => llamarGeminiMultimodal(base64Data), "Gemini-OCR");
 
@@ -185,7 +192,7 @@ function procesarDocumento(base64Data, fileName) {
 function llamarGeminiMultimodal(base64Data) {
   if (!CONFIG.GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en Script Properties.");
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent`;
   
   const systemPrompt = `
     Actúa como un experto analista documental y archivista gubernamental.
@@ -247,14 +254,28 @@ function llamarGeminiMultimodal(base64Data) {
   };
 
   const options = {
-    "method": "post",
-    "contentType": "application/json",
+    "headers": {
+      "x-goog-api-key": CONFIG.GEMINI_API_KEY
+    },
     "payload": JSON.stringify(payload),
     "muteHttpExceptions": true
   };
 
   const response = UrlFetchApp.fetch(endpoint, options);
+  const statusCode = response.getResponseCode();
   const responseText = response.getContentText();
+
+  if (statusCode === 429) {
+    throw new Error("Cuota de Gemini agotada. Intenta más tarde.");
+  }
+  if (statusCode >= 500) {
+    throw new Error(`Servicio Gemini no disponible (Error ${statusCode}).`);
+  }
+  if (statusCode >= 400) {
+    const errBody = JSON.parse(responseText);
+    throw new Error(`Gemini Error ${statusCode}: ${errBody?.error?.message || responseText}`);
+  }
+
   const result = JSON.parse(responseText);
 
   if (result.error) throw new Error(`Gemini: ${result.error.message}`);
@@ -370,12 +391,21 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
     const response = { 
       success: true, 
       message: "Oficio registrado correctamente.",
-      folio: folioGenerado,
-      dispararNotificacion: (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica")
+      folio: folioGenerado
     };
 
     if (datosFinales.uploadId) {
+      const cache = CacheService.getScriptCache();
       cache.put(`status_${datosFinales.uploadId}`, JSON.stringify(response), 300);
+    }
+
+    // 3. NOTIFICACIÓN AUTOMÁTICA (Tarea #5)
+    if (datosFinales.urgencia === "Alta" || datosFinales.urgencia === "Crítica") {
+      try {
+        _notificarUrgencia(folioGenerado, datosFinales);
+      } catch (notifErr) {
+        _log("WARN", "registrarOficioFinalizado", "Notificación falló (no crítico)", { error: notifErr.toString() });
+      }
     }
 
     return response;
@@ -416,27 +446,31 @@ function obtenerRegistros(offset = 0, limit = 50, filtros = null) {
     
     if (!allData || allData.length === 0) return { success: true, data: [], hasMore: false };
     
-    let filteredData = allData.reverse(); 
+    // OPTIMIZACIÓN O(N) (Tarea #1 de Ingeniería de Élite) - Iteración inversa sin mutación
+    let filteredData = [];
+    
+    // Recorrer desde el final para tener los más recientes primero
+    for (let i = allData.length - 1; i >= 0; i--) {
+      const row = allData[i];
+      
+      if (filtros) {
+        const { texto, area, tipo, prioridad, respuesta } = filtros;
+        const term = texto ? texto.toLowerCase() : null;
 
-    // OPTIMIZACIÓN O(N) (Tarea #1 de Ingeniería de Élite)
-    if (filtros) {
-      const { texto, area, tipo, prioridad, respuesta } = filtros;
-      const term = texto ? texto.toLowerCase() : null;
-
-      filteredData = filteredData.filter(row => {
         // 1. Filtros exactos (Short-Circuit)
-        if (area && String(row[2]) !== area) return false;
-        if (tipo && String(row[5]) !== tipo) return false;
-        if (prioridad && String(row[8]) !== prioridad) return false;
-        if (respuesta && String(row[9]) !== respuesta) return false;
+        if (area && String(row[2]) !== area) continue;
+        if (tipo && String(row[5]) !== tipo) continue;
+        if (prioridad && String(row[8]) !== prioridad) continue;
+        if (respuesta && String(row[9]) !== respuesta) continue;
 
         // 2. Filtro de búsqueda textual
         if (term) {
           const searchPool = `${row[1]} ${row[2]} ${row[3]} ${row[4]}`.toLowerCase();
-          if (!searchPool.includes(term)) return false;
+          if (!searchPool.includes(term)) continue;
         }
-        return true;
-      });
+      }
+      
+      filteredData.push(row);
     }
 
     const totalFiltered = filteredData.length;
@@ -590,21 +624,27 @@ function registrarEnGenerados(datos, docUrl) {
  * @return {string} Respuesta generada.
  */
 function llamarGeminiTexto(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent`;
   
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }]
-  };
-
   const options = {
     method: "post",
     contentType: "application/json",
+    headers: {
+      "x-goog-api-key": CONFIG.GEMINI_API_KEY
+    },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
 
   const response = UrlFetchApp.fetch(url, options);
-  const json = JSON.parse(response.getContentText());
+  const statusCode = response.getResponseCode();
+  const responseText = response.getContentText();
+
+  if (statusCode >= 400) {
+    throw new Error(`Gemini Texto Error ${statusCode}: ${responseText}`);
+  }
+
+  const json = JSON.parse(responseText);
   
   if (json.candidates && json.candidates[0].content) {
     return json.candidates[0].content.parts[0].text.trim();
@@ -892,11 +932,14 @@ function _putCacheChunked(key, value, expiration = APP_CONSTANTS.LIMITES.CACHE_E
     chunks.push(value.substring(i, i + APP_CONSTANTS.LIMITES.CHUNK_SIZE_BYTES));
   }
   
+  const version = Date.now().toString(36); // Versionado único para evitar race conditions
+  
   const chunkMap = {};
   chunks.forEach((chunk, index) => {
-    chunkMap[`${key}_chunk_${index}`] = chunk;
+    chunkMap[`${key}_v${version}_chunk_${index}`] = chunk;
   });
   chunkMap[`${key}_total`] = String(chunks.length);
+  chunkMap[`${key}_version`] = version; // Puntero atómico a la versión actual
   
   cache.putAll(chunkMap, expiration);
 }
@@ -908,17 +951,20 @@ function _putCacheChunked(key, value, expiration = APP_CONSTANTS.LIMITES.CACHE_E
  */
 function _getCacheChunked(key) {
   const cache = CacheService.getScriptCache();
+  const version = cache.get(`${key}_version`);
+  if (!version) return null;
+
   const totalChunksStr = cache.get(`${key}_total`);
   if (!totalChunksStr) return null;
   
   const totalChunks = parseInt(totalChunksStr);
-  const keys = Array.from({length: totalChunks}, (_, i) => `${key}_chunk_${i}`);
+  const keys = Array.from({length: totalChunks}, (_, i) => `${key}_v${version}_chunk_${i}`);
   const results = cache.getAll(keys);
   
   let value = "";
   for (let i = 0; i < totalChunks; i++) {
-    const chunk = results[`${key}_chunk_${i}`];
-    if (!chunk) return null; // Si falta un trozo, el caché está corrupto
+    const chunk = results[`${key}_v${version}_chunk_${i}`];
+    if (!chunk) return null; // Si falta un trozo de esta versión, el caché es inválido
     value += chunk;
   }
   
