@@ -4,7 +4,6 @@
 
 - **XSS en renderizado dinámico del frontend**: se detectaron interpolaciones de datos de usuario, datos provenientes de Sheets y nombres de archivo dentro de `innerHTML`/`insertAdjacentHTML`. Se agregó escape sistemático (`_escaparHTML`), validación de URLs (`_sanitizarUrl`) y escape específico de expresiones regulares (`_escaparRegExp`).
 - **Exposición de funciones usadas por la UI**: el botón dinámico para remover el archivo invocaba `DSA_App.resetForm()`, pero `resetForm` no estaba expuesto en la API pública del módulo, provocando error en tiempo de ejecución.
-- **Interacción antes de carga completa**: los manejadores inline podían ejecutarse antes de que `Scripts.html` definiera `window.DSA_App`, generando `ReferenceError`. Se agregó un bootstrap mínimo que encola acciones tempranas y las reproduce después de `init()`.
 - **Selector de botón incorrecto**: el frontend buscaba `button[onclick="registrarOficioFinal()"]`, pero el HTML invoca `DSA_App.registrarOficioFinal()`, por lo que el estado visual de carga podía no aplicarse/removerse correctamente.
 - **Clickjacking / embedding permisivo**: `doGet` permitía `ALLOWALL` para iframes. Se cambió a `DEFAULT` para reducir superficie de ataque salvo que exista un caso de negocio explícito para embeber la Web App.
 - **Parseo JSON frágil**: las respuestas de Gemini se parseaban con `JSON.parse` directo, lo que podía ocultar errores reales si el proveedor devolvía HTML/texto o un error no JSON. Se agregó `_parseJsonSeguro`.
