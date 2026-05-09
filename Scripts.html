@@ -448,39 +448,42 @@ const DSA_App = (function() {
   function procesarDocumento() {
     AppState.isProcessing = true;
     
-    // Rotar mensajes de carga (UX de Procesamiento Oficial)
-    const messages = [
-      'Analizando estructura del documento...',
-      'Extrayendo metadatos oficiales...',
-      'Validando integridad de la información...',
-      'Organizando datos para revisión...'
+    // --- PATRÓN ELITE: Progreso por etapas con significado ---
+    const stages = [
+      { pct: 10, msg: 'Analizando estructura del documento...', duration: 800 },
+      { pct: 30, msg: 'Enviando a motor de IA (DSA-Intelligence)...', duration: 2000 },
+      { pct: 60, msg: 'Extrayendo metadatos oficiales...', duration: 3000 },
+      { pct: 85, msg: 'Validando integridad de la información...', duration: 2000 },
+      { pct: 95, msg: 'Organizando datos para revisión...', duration: 1000 }
     ];
-    let msgIdx = 0;
-    let progress = 0;
-    
-    const msgInterval = setInterval(() => {
-      msgIdx = (msgIdx + 1) % messages.length;
-      toggleLoading(true, "Procesando...", messages[msgIdx]); // Actualizar loader con mensaje rotativo
-      
-      // Incrementar progreso simulado (más lento al final)
-      if (progress < 90) {
-        progress += Math.random() * 15;
-        const progressBar = document.getElementById('loader-progress');
-        if (progress >= 90) {
-          progress = 90;
-          if (progressBar) progressBar.classList.add('processing');
-        }
-        if (progressBar) progressBar.style.width = progress + '%';
-      }
-    }, 3000);
 
-    toggleLoading(true, "Procesando...", messages[0]);
+    let stageIdx = 0;
+    const updateStage = () => {
+      if (stageIdx < stages.length) {
+        const s = stages[stageIdx];
+        toggleLoading(true, "Procesando...", s.msg);
+        const progressBar = document.getElementById('loader-progress');
+        if (progressBar) {
+          progressBar.style.width = s.pct + '%';
+          if (s.pct >= 90) progressBar.classList.add('processing');
+        }
+        stageIdx++;
+        
+        // Programar siguiente etapa si existe
+        if (stageIdx < stages.length) {
+          msgTimeout = setTimeout(updateStage, s.duration);
+        }
+      }
+    };
+
+    let msgTimeout = setTimeout(updateStage, 10);
+
 
     // Temporizador de seguridad extendido (90 segundos)
     const timeoutId = setTimeout(() => {
       if (AppState.isProcessing) {
         AppState.isProcessing = false;
-        clearInterval(msgInterval);
+        clearTimeout(msgTimeout);
         toggleLoading(false);
         showToast('Timeout', 'La operación tardó demasiado. Intenta con un archivo más ligero.', 'danger');
       }
@@ -489,7 +492,7 @@ const DSA_App = (function() {
     google.script.run
       .withSuccessHandler(response => {
         clearTimeout(timeoutId);
-        clearInterval(msgInterval);
+        clearTimeout(msgTimeout);
         
         if (response && response.success) {
           AppState.extractedData = response.data;
@@ -507,7 +510,7 @@ const DSA_App = (function() {
       })
       .withFailureHandler(err => {
         clearTimeout(timeoutId);
-        clearInterval(msgInterval);
+        clearTimeout(msgTimeout);
         showToast('Error de Servidor', err.message, 'danger');
         AppState.isProcessing = false;
         toggleLoading(false);
@@ -891,7 +894,7 @@ const DSA_App = (function() {
     }, 400);
   }
 
-  function ejecutarGeneracion(asistido) {
+  function ejecutarGeneracion(asistido, e) {
     const notas = document.getElementById('resp-notas').value;
     if (!notas.trim()) {
       showToast('Atención', 'Por favor escribe los puntos clave para la respuesta.', 'warning');
@@ -907,7 +910,7 @@ const DSA_App = (function() {
       asistido: asistido
     };
 
-    const btn = event.currentTarget; // Capturar botón presionado
+    const btn = e?.currentTarget; // Capturar botón presionado de forma segura
     if (btn) btn.classList.add('loading');
 
     google.script.run
@@ -957,11 +960,11 @@ const DSA_App = (function() {
       if (tbody) {
         tbody.innerHTML = Array(6).fill(`
           <tr>
-            <td class="ps-4"><div class="skeleton-box" style="width: 70px;"></div></td>
-            <td><div class="cell-group"><div class="skeleton-box" style="width: 140px;"></div><div class="skeleton-box" style="width: 100px;"></div></div></td>
-            <td><div class="cell-group"><div class="skeleton-box" style="width: 100px;"></div><div class="skeleton-box" style="width: 60px;"></div></div></td>
-            <td><div class="skeleton-box" style="width: 80px; border-radius: 20px;"></div></td>
-            <td class="text-center"><div class="skeleton-box" style="width: 24px;"></div></td>
+            <td class="ps-4"><div class="skeleton-box" style="width: 70px;" role="status" aria-label="Cargando fecha..." aria-busy="true"></div></td>
+            <td><div class="cell-group"><div class="skeleton-box" style="width: 140px;" role="status" aria-label="Cargando titular..." aria-busy="true"></div><div class="skeleton-box" style="width: 100px;" role="status" aria-label="Cargando área..." aria-busy="true"></div></div></td>
+            <td><div class="cell-group"><div class="skeleton-box" style="width: 100px;" role="status" aria-label="Cargando oficio..." aria-busy="true"></div><div class="skeleton-box" style="width: 60px;" role="status" aria-label="Cargando tipo..." aria-busy="true"></div></div></td>
+            <td><div class="skeleton-box" style="width: 80px; border-radius: 20px;" role="status" aria-label="Cargando prioridad..." aria-busy="true"></div></td>
+            <td class="text-center"><div class="skeleton-box" style="width: 24px;" role="status" aria-label="Cargando enlace..." aria-busy="true"></div></td>
           </tr>
         `).join('');
       }
