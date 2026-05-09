@@ -375,28 +375,28 @@
               <div>
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">PRIORIDAD</div>
                 <div class="filter-chip-group" id="chip-prioridad">
-                  <div class="filter-chip active" onclick="seleccionarChip('prioridad', '')">Todas</div>
-                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Baja')">Baja</div>
-                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Normal')">Normal</div>
-                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Alta')">Alta</div>
-                  <div class="filter-chip" onclick="seleccionarChip('prioridad', 'Crítica')">Crítica</div>
+                  <div class="filter-chip active" onclick="DSA_App.seleccionarChip('prioridad', '')">Todas</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('prioridad', 'Baja')">Baja</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('prioridad', 'Normal')">Normal</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('prioridad', 'Alta')">Alta</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('prioridad', 'Crítica')">Crítica</div>
                 </div>
               </div>
               <div>
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">TIPO</div>
                 <div class="filter-chip-group" id="chip-tipo">
-                  <div class="filter-chip active" onclick="seleccionarChip('tipo', '')">Todos</div>
-                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Informativo')">Informativo</div>
-                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Solicitud')">Solicitud</div>
-                  <div class="filter-chip" onclick="seleccionarChip('tipo', 'Requerimiento')">Requerimiento</div>
+                  <div class="filter-chip active" onclick="DSA_App.seleccionarChip('tipo', '')">Todos</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('tipo', 'Informativo')">Informativo</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('tipo', 'Solicitud')">Solicitud</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('tipo', 'Requerimiento')">Requerimiento</div>
                 </div>
               </div>
               <div>
                 <div class="small fw-bold text-secondary mb-2" style="font-size: 0.65rem;">RESPUESTA</div>
                 <div class="filter-chip-group" id="chip-respuesta">
-                  <div class="filter-chip active" onclick="seleccionarChip('respuesta', '')">Ambos</div>
-                  <div class="filter-chip" onclick="seleccionarChip('respuesta', 'SÍ')">Sí</div>
-                  <div class="filter-chip" onclick="seleccionarChip('respuesta', 'NO')">No</div>
+                  <div class="filter-chip active" onclick="DSA_App.seleccionarChip('respuesta', '')">Ambos</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('respuesta', 'SÍ')">Sí</div>
+                  <div class="filter-chip" onclick="DSA_App.seleccionarChip('respuesta', 'NO')">No</div>
                 </div>
               </div>
               <div class="ms-auto pt-3">
@@ -444,7 +444,7 @@
             </button>
           </div>
           <div class="text-center py-4 d-none" id="btn-cargar-mas">
-            <button class="dsa-btn dsa-btn-secondary px-5" onclick="cargarSiguientePagina()">Cargar más</button>
+            <button class="dsa-btn dsa-btn-secondary px-5" onclick="DSA_App.cargarSiguientePagina()">Cargar más</button>
           </div>
         </div>
 
