@@ -626,6 +626,10 @@ function registrarEnGenerados(datos, docUrl) {
 function llamarGeminiTexto(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent`;
   
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }]
+  };
+
   const options = {
     method: "post",
     contentType: "application/json",
