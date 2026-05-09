@@ -144,6 +144,11 @@ function doGet(e) {
  * @param {string} filename Nombre del archivo a incluir (sin extensión).
  * @return {string} Contenido HTML.
  */
+/**
+ * Incluye el contenido de un archivo HTML dentro de otro.
+ * @param {string} filename Nombre del archivo.
+ * @return {string} Contenido HTML.
+ */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
@@ -188,6 +193,11 @@ function procesarDocumento(base64Data, fileName) {
  * @param {string} base64Data PDF en base64.
  * @return {Object} Objeto JSON extraído del documento.
  * @private
+ */
+/**
+ * Realiza la llamada a la API de Gemini enviando el PDF como inline_data.
+ * @param {string} base64Data PDF en base64.
+ * @return {Object} Objeto JSON extraído del documento.
  */
 function llamarGeminiMultimodal(base64Data) {
   if (!CONFIG.GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en Script Properties.");
@@ -309,6 +319,25 @@ function llamarGeminiMultimodal(base64Data) {
  * @param {string} fileName Nombre para el archivo en Drive.
  * @return {Object} Status de la operación y folio generado.
  */
+/**
+ * @typedef {Object} DocumentoMetadata
+ * @property {string} titular
+ * @property {string} area
+ * @property {string} oficio
+ * @property {string} asunto
+ * @property {string} tipo_doc
+ * @property {string} urgencia
+ * @property {boolean} requiere_respuesta
+ * @property {string} [uploadId]
+ */
+
+/**
+ * Guarda el archivo en Drive y registra los datos en la Hoja de Cálculo con validación estricta.
+ * @param {DocumentoMetadata} datosFinales Metadatos del oficio.
+ * @param {string} base64Data PDF en base64.
+ * @param {string} fileName Nombre del archivo.
+ * @return {Object} Resultado de la operación.
+ */
 function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
   // 0.0 Validación de Entradas (Seguridad: Regla #4)
   if (!datosFinales || typeof datosFinales !== "object") throw new Error("Datos de entrada inválidos.");
@@ -379,8 +408,11 @@ function registrarOficioFinalizado(datosFinales, base64Data, fileName) {
         Session.getActiveUser().getEmail()
       ];
       
-      sheet.appendRow(nuevaFila);
-      SpreadsheetApp.flush();
+      const valueRange = Sheets.newValueRange();
+      valueRange.values = [nuevaFila];
+      Sheets.Spreadsheets.Values.append(valueRange, CONFIG.SHEET_ID_GOBIERNO, APP_CONSTANTS.RANGOS.HOJA_RECIBIDOS, {
+        valueInputOption: "USER_ENTERED"
+      });
     } finally {
       lock.releaseLock();
     }
@@ -725,14 +757,15 @@ function obtenerEstadisticas() {
 
     let [total, pendientes, urgentes, registradosHoy] = [rows.length, 0, 0, 0];
 
+    const hoyTime = hoy.getTime();
     rows.forEach(row => {
-      const urgencia = row[8]; // Columna I
-      const estatus = row[10]; // Columna K
-      const fecha = new Date(row[0]); 
-
+      const [fechaRaw, , , , , , , , urgencia, , estatus] = row;
       if (estatus === APP_CONSTANTS.ESTATUS.PENDIENTE || estatus === APP_CONSTANTS.ESTATUS.ACTIVO) pendientes++;
       if (urgencia === "Alta" || urgencia === "Crítica") urgentes++;
-      if (fecha >= hoy) registradosHoy++;
+      if (fechaRaw) {
+        const fechaVal = new Date(fechaRaw).getTime();
+        if (fechaVal >= hoyTime) registradosHoy++;
+      }
     });
 
     // Actividad reciente

@@ -249,6 +249,7 @@ const DSA_App = (function() {
       // Solo si el usuario está en el dashboard y no hay procesos bloqueantes
       if (AppState.vistaActual === 'v-dashboard' && !AppState.isProcessing) {
         google.script.run
+          .withFailureHandler(err => console.error("Error en Heartbeat:", err))
           .withSuccessHandler(nuevaUltimaFila => {
             if (nuevaUltimaFila > AppState.ultimaFilaConocida && AppState.ultimaFilaConocida !== 0) {
               console.log("Detectados datos nuevos. Sincronizando dashboard...");
@@ -423,6 +424,11 @@ const DSA_App = (function() {
     // Mostrar loader inmediatamente durante la lectura local
     toggleLoading(true, "Leyendo archivo...", "Preparando transferencia segura...");
 
+    if (file.type !== 'application/pdf') {
+      showToast('Formato Inválido', 'Solo se permiten archivos PDF.', 'danger');
+      toggleLoading(false);
+      return;
+    }
     AppState.pdfFile = file;
     AppState.uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
@@ -559,7 +565,13 @@ const DSA_App = (function() {
           showToast('Registrado', res.message, 'success');
 
           // Tarea #5: Disparar notificación en background (no bloquea UI)
+<<<<<<< HEAD
           // Tarea #5: La notificación se dispara automáticamente en el backend si es necesario
+=======
+          if (res.dispararNotificacion) {
+            google.script.run.withFailureHandler(e => console.error(e))._notificarUrgencia(res.folio, data);
+          }
+>>>>>>> a460f243773f4b494b427e48a6f118e99e40f25a
           
           // Generar Acuse de Recibo Institucional (en lugar de resetear e ir a inicio)
           const paso3 = document.getElementById('paso-3');
