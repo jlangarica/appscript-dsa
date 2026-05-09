@@ -264,6 +264,8 @@ function llamarGeminiMultimodal(base64Data) {
   };
 
   const options = {
+    "method": "post",
+    "contentType": "application/json",
     "headers": {
       "x-goog-api-key": CONFIG.GEMINI_API_KEY
     },
@@ -768,10 +770,11 @@ function obtenerEstadisticas() {
       }
     });
 
-    // Actividad reciente
-    const recientes = rows.slice(-5).reverse().map(row => {
+    // Actividad reciente: Folios consistentes basados en índice real
+    const recientes = rows.slice(-5).reverse().map((row, i) => {
+      const rowIndex = rows.length - i; // Índice real (1-based) desde el final
       return {
-        folio: "FOL-" + (row[0] ? String(row[0]).slice(-4) : "0000"),
+        folio: "FOL-" + String(rowIndex).padStart(4, '0'),
         titular: String(row[1] || "N/A"),
         asunto: String(row[4] || "Sin asunto"),
         fecha: String(row[0] || "N/A"),
